@@ -5,10 +5,11 @@ namespace App\Entity;
 use App\Repository\BookRepository;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
-use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
+use Gedmo\Mapping\Annotation\Timestampable;
 
 #[ORM\Entity(repositoryClass: BookRepository::class)]
+#[ORM\HasLifecycleCallbacks]
 class Book
 {
     #[ORM\Id]
@@ -22,9 +23,6 @@ class Book
     #[ORM\Column(length: 255, unique: true)]
     private ?string $isbn = null;
 
-    #[ORM\Column(type: Types::DATE_IMMUTABLE)]
-    private ?\DateTimeImmutable $publish_date = null;
-
     #[ORM\Column(length: 255, nullable: true)]
     private ?string $description = null;
 
@@ -33,6 +31,19 @@ class Book
 
     #[ORM\Column(length: 255, nullable: true)]
     private ?string $genre = null;
+
+    #[ORM\Column(length: 25, nullable: true)]
+    private ?string $publish_date = null;
+
+    #[ORM\Column(nullable: true)]
+    #[Timestampable(on: 'create')]
+    private ?\DateTimeImmutable $createdAt = null;
+
+    #[ORM\PrePersist]
+    public function onPrePersist(): void
+    {
+        $this->createdAt = new \DateTimeImmutable();
+    }
 
     /**
      * @var Collection<int, BookAuthor>
@@ -81,18 +92,6 @@ class Book
         return $this;
     }
 
-    public function getPublishDate(): ?\DateTimeImmutable
-    {
-        return $this->publish_date;
-    }
-
-    public function setPublishDate(\DateTimeImmutable $publish_date): static
-    {
-        $this->publish_date = $publish_date;
-
-        return $this;
-    }
-
     public function getDescription(): ?string
     {
         return $this->description;
@@ -125,6 +124,18 @@ class Book
     public function setGenre(?string $genre): static
     {
         $this->genre = $genre;
+
+        return $this;
+    }
+
+    public function getPublishDate(): ?string
+    {
+        return $this->publish_date;
+    }
+
+    public function setPublishDate(?string $publish_date): static
+    {
+        $this->publish_date = $publish_date;
 
         return $this;
     }
