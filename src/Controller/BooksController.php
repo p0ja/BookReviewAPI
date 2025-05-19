@@ -12,10 +12,12 @@ use App\Repository\AuthorRepository;
 use App\Repository\BookAuthorRepository;
 use App\Repository\BookRepository;
 use App\Repository\ReviewRepository;
+use App\Validator\ParametersValidator;
 use Exception;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Attribute\MapRequestPayload;
+use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
 use Symfony\Component\Routing\Attribute\Route;
 
 final class BooksController extends AbstractController
@@ -31,11 +33,11 @@ final class BooksController extends AbstractController
     ) {
     }
 
-    #[Route('/books', name: 'rest_books', methods: ['GET'])]
-    public function list(): Response
+    #[Route('/books/{page?}/{size?}/{orderBy?}', name: 'rest_books', methods: ['GET'])]
+    public function list(?int $page, ?int $size, ?string $orderBy): Response
     {
         try {
-            $books = $this->bookRepository->findAll();
+            $books = $this->bookRepository->findBooks($page, $size, $orderBy);
             $booksData = [];
 
             foreach ($books as $book) {
@@ -129,5 +131,10 @@ final class BooksController extends AbstractController
         $reviewData = $this->reviewData->getOutput($review);
 
         return $this->json($reviewData);
+    }
+
+    private function createBadRequestHttpException(string $message = 'Not Found', ?\Throwable $previous = null): BadRequestHttpException
+    {
+        return new BadRequestHttpException($message, $previous);
     }
 }

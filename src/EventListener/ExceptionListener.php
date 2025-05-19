@@ -33,8 +33,6 @@ class ExceptionListener
             LogLevel::ERROR,
         );
 
-
-
         if ($exception instanceof HttpExceptionInterface) {
 
             match ($exception->getStatusCode()) {

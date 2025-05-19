@@ -25,6 +25,23 @@ class BookRepository extends ServiceEntityRepository
         parent::__construct($registry, Book::class);
     }
 
+    public function findBooks(?int $page, ?int $size, ?string $orderBy): array
+    {
+        $qb = $this->createQueryBuilder('b');
+        if ($page) {
+            $offset = ($page - 1) * $size;
+            $qb->setFirstResult($offset);
+        }
+        if ($size) {
+            $qb->setMaxResults($size);
+        }
+        if ($orderBy) {
+            $qb->orderBy('b.'.$orderBy, 'ASC');
+        }
+
+        return $qb->getQuery()->getResult();
+    }
+
     public function createBook(CreateBook $bookPost): Book
     {
         $isbn = trim($bookPost->isbn);
