@@ -4,42 +4,66 @@ declare(strict_types=1);
 
 namespace App\Repository;
 
+use App\Entity\Author;
+use App\Entity\Book;
 use App\Entity\BookAuthor;
+use App\Logger\LoggerInterface;
+use App\Logger\NamespaceEnum;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\Persistence\ManagerRegistry;
+use Exception;
 
 /**
  * @extends ServiceEntityRepository<BookAuthor>
  */
 class BookAuthorRepository extends ServiceEntityRepository
 {
-    public function __construct(ManagerRegistry $registry)
-    {
+    public function __construct(
+        protected ManagerRegistry $registry,
+        private readonly LoggerInterface $logger,
+    ) {
         parent::__construct($registry, BookAuthor::class);
     }
 
-    //    /**
-    //     * @return BookAuthor[] Returns an array of BookAuthor objects
-    //     */
-    //    public function findByExampleField($value): array
-    //    {
-    //        return $this->createQueryBuilder('b')
-    //            ->andWhere('b.exampleField = :val')
-    //            ->setParameter('val', $value)
-    //            ->orderBy('b.id', 'ASC')
-    //            ->setMaxResults(10)
-    //            ->getQuery()
-    //            ->getResult()
-    //        ;
-    //    }
+    public function createBookAuthor(Book $book, Author $author): BookAuthor
+    {
+        if (!$bookAuthor = $this->getBookAuthor($book->getId(), $author->getId())) {
+            $bookAuthor = new BookAuthor();
+        }
 
-    //    public function findOneBySomeField($value): ?BookAuthor
-    //    {
-    //        return $this->createQueryBuilder('b')
-    //            ->andWhere('b.exampleField = :val')
-    //            ->setParameter('val', $value)
-    //            ->getQuery()
-    //            ->getOneOrNullResult()
-    //        ;
-    //    }
+        $bookAuthor->setBook($book);
+        $bookAuthor->setAuthor($author);
+
+        try {
+            $em = $this->getEntityManager();
+            $em->persist($bookAuthor);
+            $em->flush();
+        } catch (Exception $e) {
+            $this->logger->log(
+                NamespaceEnum::REST_BOOK_AUTHOR->value,
+                $e->getMessage(),
+                [
+                    'exception' => $e,
+                    'book' => $book,
+                    'author' => $author,
+                ]
+            );
+        }
+
+        return $bookAuthor;
+    }
+
+    private function getBookAuthor(int $bookId, int $authorId): BookAuthor|null
+    {
+        $bookAuthor = $this->createQueryBuilder('b')
+            ->andWhere('b.book_id = :val')
+            ->andWhere('b.author_id = :val2')
+            ->setParameter('val', $bookId)
+            ->setParameter('val2', $authorId)
+            ->setMaxResults(1)
+            ->getQuery()
+            ->getResult();
+
+        return $bookAuthor[0] ?? null;
+    }
 }

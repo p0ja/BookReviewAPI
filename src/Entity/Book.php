@@ -7,6 +7,7 @@ use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
 use Gedmo\Mapping\Annotation\Timestampable;
+use Symfony\Component\Serializer\Attribute\Ignore;
 
 #[ORM\Entity(repositoryClass: BookRepository::class)]
 #[ORM\HasLifecycleCallbacks]
@@ -37,6 +38,7 @@ class Book
 
     #[ORM\Column(nullable: true)]
     #[Timestampable(on: 'create')]
+    #[Ignore]
     private ?\DateTimeImmutable $createdAt = null;
 
     #[ORM\PrePersist]
@@ -49,6 +51,7 @@ class Book
      * @var Collection<int, BookAuthor>
      */
     #[ORM\OneToMany(targetEntity: BookAuthor::class, mappedBy: 'book_id')]
+    #[Ignore]
     private Collection $book_authors;
 
     public function __construct()
@@ -152,7 +155,7 @@ class Book
     {
         if (!$this->book_authors->contains($bookAuthor)) {
             $this->book_authors->add($bookAuthor);
-            $bookAuthor->setBookId($this);
+            $bookAuthor->setBook($this);
         }
 
         return $this;
@@ -162,8 +165,8 @@ class Book
     {
         if ($this->book_authors->removeElement($bookAuthor)) {
             // set the owning side to null (unless already changed)
-            if ($bookAuthor->getBookId() === $this) {
-                $bookAuthor->setBookId(null);
+            if ($bookAuthor->getBook() === $this) {
+                $bookAuthor->setBook(null);
             }
         }
 

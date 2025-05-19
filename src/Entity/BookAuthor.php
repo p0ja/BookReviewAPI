@@ -4,6 +4,7 @@ namespace App\Entity;
 
 use App\Repository\BookAuthorRepository;
 use Doctrine\ORM\Mapping as ORM;
+use Symfony\Component\Serializer\Attribute\Ignore;
 
 #[ORM\Entity(repositoryClass: BookAuthorRepository::class)]
 class BookAuthor
@@ -14,9 +15,11 @@ class BookAuthor
     private ?int $id = null;
 
     #[ORM\ManyToOne(inversedBy: 'book_authors')]
+    #[Ignore]
     private ?Book $book_id = null;
 
     #[ORM\ManyToOne(inversedBy: 'author_books')]
+    #[Ignore]
     private ?Author $author_id = null;
 
     public function getId(): ?int
@@ -24,24 +27,24 @@ class BookAuthor
         return $this->id;
     }
 
-    public function getBookId(): ?Book
+    public function getBook(): ?Book
     {
         return $this->book_id;
     }
 
-    public function setBookId(?Book $book_id): static
+    public function setBook(?Book $book_id): static
     {
         $this->book_id = $book_id;
 
         return $this;
     }
 
-    public function getAuthorId(): ?Author
+    public function getAuthor(): ?Author
     {
         return $this->author_id;
     }
 
-    public function setAuthorId(?Author $author_id): static
+    public function setAuthor(?Author $author_id): static
     {
         $this->author_id = $author_id;
 
