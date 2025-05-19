@@ -1,4 +1,6 @@
 {
+    "name": "p0ja/book-reviews-api",
+    "description": "REST API books and reviews management",
     "type": "project",
     "license": "proprietary",
     "minimum-stability": "stable",
@@ -28,7 +30,7 @@
         "symfony/serializer": "7.2.*",
         "symfony/validator": "7.2.*",
         "symfony/yaml": "7.2.*",
-        "symfonycasts/verify-email-bundle": "*"
+        "symfonycasts/verify-email-bundle": "1.17.*"
     },
     "require-dev": {
         "doctrine/doctrine-fixtures-bundle": "^4.1",
