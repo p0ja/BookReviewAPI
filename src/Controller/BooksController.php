@@ -12,12 +12,10 @@ use App\Repository\AuthorRepository;
 use App\Repository\BookAuthorRepository;
 use App\Repository\BookRepository;
 use App\Repository\ReviewRepository;
-use App\Validator\ParametersValidator;
 use Exception;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Attribute\MapRequestPayload;
-use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
 use Symfony\Component\Routing\Attribute\Route;
 
 final class BooksController extends AbstractController
@@ -44,7 +42,7 @@ final class BooksController extends AbstractController
                 $booksData[] = $this->bookData->getOutput($book);
             }
 
-            return $this->json($booksData);
+            return $this->json($booksData, Response::HTTP_OK);
 
         } catch (Exception $e) {
             $this->logger->log(
@@ -77,7 +75,7 @@ final class BooksController extends AbstractController
 
         $booksData = $this->bookData->getOutput($book);
 
-        return $this->json($booksData);
+        return $this->json($booksData, Response::HTTP_OK);
     }
 
     #[Route('/books', name: 'book_create', methods:['POST'])]
@@ -93,7 +91,7 @@ final class BooksController extends AbstractController
 
         $booksData = $this->bookData->getOutput($book);
 
-        return $this->json($booksData);
+        return $this->json($booksData, Response::HTTP_OK);
     }
 
     #[Route('/books/{id}/reviews', name: 'rest_book_reviews', methods: ['GET'])]
@@ -117,7 +115,7 @@ final class BooksController extends AbstractController
             $reviewsData[] = $this->reviewData->getOutput($review);
         }
 
-        return $this->json($reviewsData);
+        return $this->json($reviewsData, Response::HTTP_OK);
     }
 
     #[Route('/books/{id}/reviews', name: 'review_create', methods:['POST'])]
@@ -130,11 +128,20 @@ final class BooksController extends AbstractController
         $review = $this->reviewRepository->create($book, $reviewPost);
         $reviewData = $this->reviewData->getOutput($review);
 
-        return $this->json($reviewData);
+        return $this->json($reviewData, Response::HTTP_CREATED);
     }
 
-    private function createBadRequestHttpException(string $message = 'Not Found', ?\Throwable $previous = null): BadRequestHttpException
+    #[Route('/book/delete/{id}', name: 'rest_book_delete', methods:['DELETE'])]
+    public function deleteBook(int $id): Response
     {
-        return new BadRequestHttpException($message, $previous);
+        $book = $this->bookRepository->removeBook($id);
+        if (!$book) {
+            throw $this->createNotFoundException('No book to be deleted');
+        }
+
+        return $this->json(
+            ['result' => true],
+            Response::HTTP_OK
+        );
     }
 }
