@@ -54,9 +54,16 @@ class Book
     #[Ignore]
     private Collection $book_authors;
 
+    /**
+     * @var Collection<int, Review>
+     */
+    #[ORM\OneToMany(targetEntity: Review::class, mappedBy: 'book_id', orphanRemoval: true)]
+    private Collection $reviews;
+
     public function __construct()
     {
         $this->book_authors = new ArrayCollection();
+        $this->reviews = new ArrayCollection();
     }
 
     public function getId(): ?int
@@ -167,6 +174,36 @@ class Book
             // set the owning side to null (unless already changed)
             if ($bookAuthor->getBook() === $this) {
                 $bookAuthor->setBook(null);
+            }
+        }
+
+        return $this;
+    }
+
+    /**
+     * @return Collection<int, Review>
+     */
+    public function getReviews(): Collection
+    {
+        return $this->reviews;
+    }
+
+    public function addReview(Review $review): static
+    {
+        if (!$this->reviews->contains($review)) {
+            $this->reviews->add($review);
+            $review->setBookId($this);
+        }
+
+        return $this;
+    }
+
+    public function removeReview(Review $review): static
+    {
+        if ($this->reviews->removeElement($review)) {
+            // set the owning side to null (unless already changed)
+            if ($review->getBookId() === $this) {
+                $review->setBookId(null);
             }
         }
 

@@ -39,12 +39,26 @@ class BookAuthor
         return $this;
     }
 
+    public function setBookId(?Book $book_id): static
+    {
+        $this->book_id = $book_id;
+
+        return $this;
+    }
+
     public function getAuthor(): ?Author
     {
         return $this->author_id;
     }
 
     public function setAuthor(?Author $author_id): static
+    {
+        $this->author_id = $author_id;
+
+        return $this;
+    }
+
+    public function setAuthorId(?Author $author_id): static
     {
         $this->author_id = $author_id;
 
