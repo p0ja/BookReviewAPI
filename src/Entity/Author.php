@@ -6,6 +6,7 @@ use App\Repository\AuthorRepository;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
+use Symfony\Component\Serializer\Attribute\Ignore;
 
 #[ORM\Entity(repositoryClass: AuthorRepository::class)]
 class Author
@@ -25,6 +26,7 @@ class Author
      * @var Collection<int, BookAuthor>
      */
     #[ORM\OneToMany(targetEntity: BookAuthor::class, mappedBy: 'author_id')]
+    #[Ignore]
     private Collection $author_books;
 
     public function __construct()
@@ -80,7 +82,7 @@ class Author
     {
         if (!$this->author_books->contains($authorBook)) {
             $this->author_books->add($authorBook);
-            $authorBook->setAuthorId($this);
+            $authorBook->setAuthor($this);
         }
 
         return $this;
@@ -90,8 +92,8 @@ class Author
     {
         if ($this->author_books->removeElement($authorBook)) {
             // set the owning side to null (unless already changed)
-            if ($authorBook->getAuthorId() === $this) {
-                $authorBook->setAuthorId(null);
+            if ($authorBook->getAuthor() === $this) {
+                $authorBook->setAuthor(null);
             }
         }
 

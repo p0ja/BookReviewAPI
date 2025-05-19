@@ -4,6 +4,9 @@ REST API books and reviews management
 # database
 docker compose up -d
 
+# fixtures
+symfony console doctrine:fixtures:load
+
 # http server
 symfony serve:start -d
 
@@ -14,7 +17,7 @@ php bin/console lexik:jwt:generate-keypair
 bin/console security:hash-password
 
 # logging (todo: configure https, default token ttl=1h)
-curl -X POST -H "Content-Type: application/json" http://localhost/login_check -d '{"username":"admin","password":"password"}'
+curl -X POST -H "Content-Type: application/json" http://localhost/login_check -d '{"username":"user","password":"password"}'
 
 # requests
-curl -X GET -H "Content-Type: application/json" -H "Authorization: Bearer [jwt token]" http://localhost:8000/users
+curl -X GET -H "Content-Type: application/json" -H "Authorization: Bearer [jwt token]" http://localhost:8000/books

@@ -5,41 +5,62 @@ declare(strict_types=1);
 namespace App\Repository;
 
 use App\Entity\Author;
+use App\Logger\LoggerInterface;
+use App\Logger\NamespaceEnum;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\Persistence\ManagerRegistry;
+use Exception;
 
 /**
  * @extends ServiceEntityRepository<Author>
  */
 class AuthorRepository extends ServiceEntityRepository
 {
-    public function __construct(ManagerRegistry $registry)
-    {
+    public function __construct(
+        protected ManagerRegistry $registry,
+        private readonly LoggerInterface $logger,
+    ) {
         parent::__construct($registry, Author::class);
     }
 
-    //    /**
-    //     * @return Author[] Returns an array of Author objects
-    //     */
-    //    public function findByExampleField($value): array
-    //    {
-    //        return $this->createQueryBuilder('a')
-    //            ->andWhere('a.exampleField = :val')
-    //            ->setParameter('val', $value)
-    //            ->orderBy('a.id', 'ASC')
-    //            ->setMaxResults(10)
-    //            ->getQuery()
-    //            ->getResult()
-    //        ;
-    //    }
+    public function createAuthor(array $authorData): Author
+    {
+        if ($this->authorExists($authorData['name'])) {
+            $author = $this->findOneBy(['name' => $authorData['name']]);
+        } else {
+            $author = new Author();
+        }
 
-    //    public function findOneBySomeField($value): ?Author
-    //    {
-    //        return $this->createQueryBuilder('a')
-    //            ->andWhere('a.exampleField = :val')
-    //            ->setParameter('val', $value)
-    //            ->getQuery()
-    //            ->getOneOrNullResult()
-    //        ;
-    //    }
+        $author->setName($authorData['name']);
+        $author->setInfo($authorData['info']);
+
+        try {
+            $em = $this->getEntityManager();
+            $em->persist($author);
+            $em->flush();
+        } catch (Exception $e) {
+            $this->logger->log(
+                NamespaceEnum::REST_AUTHOR->value,
+                $e->getMessage(),
+                [
+                    'exception' => $e,
+                    'book' => $author,
+                ]
+            );
+        }
+
+        return $author;
+    }
+
+    private function authorExists(string $name): bool
+    {
+        $authorCheck = $this->createQueryBuilder('b')
+            ->andWhere('b.name = :val')
+            ->setParameter('val', $name)
+            ->setMaxResults(1)
+            ->getQuery()
+            ->getResult();
+
+        return (bool)$authorCheck;
+    }
 }
