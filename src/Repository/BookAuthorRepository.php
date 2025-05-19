@@ -12,6 +12,7 @@ use App\Logger\NamespaceEnum;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\Persistence\ManagerRegistry;
 use Exception;
+use Psr\Log\LogLevel;
 
 /**
  * @extends ServiceEntityRepository<BookAuthor>
@@ -46,7 +47,8 @@ class BookAuthorRepository extends ServiceEntityRepository
                     'exception' => $e,
                     'book' => $book,
                     'author' => $author,
-                ]
+                ],
+                LogLevel::ERROR,
             );
         }
 
