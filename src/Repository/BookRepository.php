@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Repository;
 
+use App\Config\ConfigData;
 use App\Dto\CreateBook;
 use App\Entity\Book;
 use App\Logger\LoggerInterface;
@@ -35,7 +36,7 @@ class BookRepository extends ServiceEntityRepository
         if ($size) {
             $qb->setMaxResults($size);
         }
-        if ($orderBy) {
+        if (in_array($orderBy, ConfigData::BOOK_SORTING_COLUMNS, true)) {
             $qb->orderBy('b.'.$orderBy, 'ASC');
         }
 
