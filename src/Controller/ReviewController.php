@@ -21,11 +21,11 @@ final class ReviewController extends AbstractController
     ) {
     }
 
-    #[Route('/reviews', name: 'app_review')]
-    public function list(): Response
+    #[Route('/reviews/{page?}/{size?}/{orderBy?}', name: 'app_review')]
+    public function list(?int $page, ?int $size, ?string $orderBy): Response
     {
         try {
-            $reviews = $this->reviewRepository->findAll();
+            $reviews = $this->reviewRepository->findReviews($page, $size, $orderBy);
             $reviewsData = [];
 
             foreach ($reviews as $review) {

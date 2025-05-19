@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Repository;
 
+use App\Config\ConfigData;
 use App\Dto\CreateBook;
 use App\Entity\Book;
 use App\Logger\LoggerInterface;
@@ -23,6 +24,23 @@ class BookRepository extends ServiceEntityRepository
         private readonly LoggerInterface $logger,
     ) {
         parent::__construct($registry, Book::class);
+    }
+
+    public function findBooks(?int $page, ?int $size, ?string $orderBy): array
+    {
+        $qb = $this->createQueryBuilder('b');
+        if ($page) {
+            $offset = ($page - 1) * $size;
+            $qb->setFirstResult($offset);
+        }
+        if ($size) {
+            $qb->setMaxResults($size);
+        }
+        if (in_array($orderBy, ConfigData::BOOK_SORTING_COLUMNS, true)) {
+            $qb->orderBy('b.'.$orderBy, 'ASC');
+        }
+
+        return $qb->getQuery()->getResult();
     }
 
     public function createBook(CreateBook $bookPost): Book
