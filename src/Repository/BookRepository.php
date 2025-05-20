@@ -80,6 +80,20 @@ class BookRepository extends ServiceEntityRepository
         return $book;
     }
 
+    public function removeBook(int $id): bool
+    {
+        $book = $this->find($id);
+        if ($book) {
+            $em = $this->getEntityManager();
+            $em->remove($book);
+            $em->flush();
+
+            return true;
+        }
+
+        return false;
+    }
+
     private function bookExists(string $isbn): bool
     {
         $bookCheck = $this->createQueryBuilder('b')

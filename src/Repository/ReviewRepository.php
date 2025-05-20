@@ -82,4 +82,18 @@ class ReviewRepository extends ServiceEntityRepository
 
         return $qb->getQuery()->getResult();
     }
+
+    public function removeReview(int $id): bool
+    {
+        $review = $this->find($id);
+        if ($review) {
+            $em = $this->getEntityManager();
+            $em->remove($review);
+            $em->flush();
+
+            return true;
+        }
+
+        return false;
+    }
 }

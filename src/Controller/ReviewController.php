@@ -2,7 +2,6 @@
 
 namespace App\Controller;
 
-use App\Entity\Review;
 use App\Logger\LoggerInterface;
 use App\Logger\NamespaceEnum;
 use App\Output\ReviewData;
@@ -21,7 +20,7 @@ final class ReviewController extends AbstractController
     ) {
     }
 
-    #[Route('/reviews/{page?}/{size?}/{orderBy?}', name: 'app_review')]
+    #[Route('/reviews/{page?}/{size?}/{orderBy?}', name: 'app_review', methods: ['GET'])]
     public function list(?int $page, ?int $size, ?string $orderBy): Response
     {
         try {
@@ -45,5 +44,19 @@ final class ReviewController extends AbstractController
 
             throw $this->createNotFoundException('Reviews not found');
         }
+    }
+
+    #[Route('/review/delete/{id}', name: 'rest_review_delete', methods:['DELETE'])]
+    public function delete(int $id): Response
+    {
+        $result = $this->reviewRepository->removeReview($id);
+        if (!$result) {
+            throw $this->createNotFoundException('No review to be deleted');
+        }
+
+        return $this->json(
+            ['result' => true],
+            Response::HTTP_OK
+        );
     }
 }
