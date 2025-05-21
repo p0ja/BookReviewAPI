@@ -27,3 +27,8 @@
 /phpunit.xml
 /.phpunit.cache/
 ###< phpunit/phpunit ###
+
+###< docker/frankenphp ###
+/frankenphp/conf.d/*_Zone.Identifier
+###< docker/frankenphp ###
+
