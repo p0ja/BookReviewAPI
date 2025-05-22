@@ -1,0 +1,52 @@
+1. Konfiguracja Xdebug w Docker Compose:
+
+- Upewnij się, że Docker Compose jest zainstalowany i działa.
+- Edytuj plik docker-compose.yml i dodaj odpowiednią konfigurację Xdebug w sekcji build lub w sekcji services dla kontenera, w którym uruchamiane jest PHP.
+- Na przykład, możesz dodać następującą konfigurację w sekcji build dla kontenera:
+
+Kod
+
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        PHP_XDEBUG_ENABLED: "1"
+
+lub w sekcji services:
+
+Kod
+
+    services:
+      app:
+        build:
+          context: .
+          dockerfile: Dockerfile
+        ports:
+          - "8000:8000" # lub inny port
+        environment:
+          XDEBUG_CONFIG: "remote_enable=1,remote_host=host.docker.internal,remote_port=9003,idekey=PHPSTORM" # Ustaw właściwy adres hosta
+
+Ważne: remote_host=host.docker.internal pozwala PHPStormowi połączyć się z kontenerem z hosta. remote_port=9003 to domyślny port debugowania Xdebug.
+Uruchom kontener za pomocą docker-compose up -d.
+
+2. Konfiguracja PHPStorm:
+
+- Otwórz PHPStorm i przejdź do File -> Settings -> Languages & Frameworks -> PHP -> Servers.
+- Dodaj nowy serwer i ustaw następujące parametry:
+    - Host: localhost (lub adres IP kontenera, jeśli używasz inny).
+    - Port: 9003 (lub port, który ustawiono w Xdebug).
+    - PHP interpreter: Ścieżka do interpretatora PHP w Twoim systemie (np. php -v).
+    - Path mappings: Dodaj mapowanie ścieżek między lokalnym projektem a projektem w kontenerze (np. host:/ścieżka/do/projekty -> /ścieżka/w/kontenerze).
+- Po skonfigurowaniu serwera, możesz uruchomić tryb debugowania PHPStorma.
+
+Dodatkowe wskazówki:
+
+- Ważne jest, aby ustawić odpowiednią konfigurację Xdebug w kontenerze, aby debuger mógł się połączyć.
+- Upewnij się, że XDEBUG_CONFIG jest poprawnie ustawiony w środowisku kontenera.
+- W razie potrzeby możesz dodać dodatkowe ustawienia Xdebug, takie jak idekey, remote_connect_back lub remote_autostart.
+- Po skonfigurowaniu, możesz uruchomić aplikację PHP w PHPStormie w trybie debugowania, dodając punkty przerwania i obserwując zmienne podczas działania kodu, zgodnie z opisem na stronie Koddlo.
+
+Więcej szczegółów:
+
+- Ustawienia Xdebug: [Link: Dokumentacja Xdebug https://xdebug.org.en2pl.search.translate.goog/docs/all_settings]
+- Debugowanie z Xdebug i VSCode: [Link: Cloudways https://www.cloudways.com.en2pl.search.translate.goog/blog/php-debug/]

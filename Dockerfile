@@ -1,7 +1,7 @@
 #syntax=docker/dockerfile:1
 
 # Versions
-FROM dunglas/frankenphp:1-php8.3 AS frankenphp_upstream
+FROM dunglas/frankenphp:1-php8.3-bookworm AS frankenphp_upstream
 
 # The different stages of this Dockerfile are meant to be built into separate images
 # https://docs.docker.com/develop/develop-images/multistage-build/#stop-at-a-specific-build-stage
@@ -60,7 +60,7 @@ CMD [ "frankenphp", "run", "--config", "/etc/frankenphp/Caddyfile" ]
 FROM frankenphp_base AS frankenphp_dev
 
 ENV APP_ENV=dev
-ENV XDEBUG_MODE=off
+ENV XDEBUG_MODE=develop,debug
 ENV FRANKENPHP_WORKER_CONFIG=watch
 
 RUN mv "$PHP_INI_DIR/php.ini-development" "$PHP_INI_DIR/php.ini"
@@ -68,7 +68,7 @@ RUN mv "$PHP_INI_DIR/php.ini-development" "$PHP_INI_DIR/php.ini"
 RUN set -eux; \
 	install-php-extensions \
 		xdebug \
-	;
+        && docker-php-ext-enable xdebug;
 
 COPY --link frankenphp/conf.d/20-app.dev.ini $PHP_INI_DIR/app.conf.d/
 
