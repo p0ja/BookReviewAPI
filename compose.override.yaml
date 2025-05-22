@@ -21,6 +21,8 @@ services:
       MERCURE_EXTRA_DIRECTIVES: demo
       # See https://xdebug.org/docs/all_settings#mode
       XDEBUG_MODE: "${XDEBUG_MODE:-off}"
+      # Where the IDE listens; override with XDEBUG_CLIENT_HOST (see README for WSL2)
+      XDEBUG_CONFIG: "client_host=${XDEBUG_CLIENT_HOST:-host.docker.internal}"
       APP_ENV: "${APP_ENV:-dev}"
     extra_hosts:
       # Ensure that host.docker.internal is correctly defined on Linux

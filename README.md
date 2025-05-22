@@ -4,6 +4,16 @@ REST API books and reviews management
 # docker
 docker compose up -d
 
+# xdebug
+Xdebug is installed in the dev image and off by default. Start the stack with step debugging enabled:
+XDEBUG_MODE=debug docker compose up -d
+
+In PHPStorm listen on port 9003 and map the project root to /app (Settings -> PHP -> Servers, name: localhost).
+Connection problems are logged to var/log/xdebug.log.
+
+Docker Engine inside WSL2 with PHPStorm on Windows: host.docker.internal resolves to the WSL VM, not Windows, so pass the Windows host address (the WSL default gateway):
+XDEBUG_MODE=debug XDEBUG_CLIENT_HOST=$(ip route show default | awk '{print $3}') docker compose up -d
+
 # fixtures
 symfony console doctrine:fixtures:load
 
