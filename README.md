@@ -24,7 +24,8 @@ php bin/console lexik:jwt:generate-keypair
 bin/console security:hash-password
 
 # logging (default token ttl=1h)
-curl -X POST -H "Content-Type: application/json" https://localhost/login_check -d '{"username":"username","password":"password"}'
+Users are loaded from the users table by email. The fixtures create admin@example.com / admin (ROLE_ADMIN) and user@example.com / user (ROLE_USER).
+curl -X POST -H "Content-Type: application/json" https://localhost/login_check -d '{"username":"user@example.com","password":"user"}'
 
 # requests
 # list books - pagination and sorting are query parameters (page, size, orderBy)
@@ -46,6 +47,9 @@ curl -v -X POST http://127.0.0.1:8000/books -H 'Authorization: Bearer [jwt token
 # create review
 curl -v -X POST http://127.0.0.1:8000/books/{id}/reviews -H 'Authorization: Bearer [jwt token]' -H 'Content-Type: application/json' -d '{"name":"reviewer name","content":"prosty nowy review content","rating":"3"}'
 
-# todo:
-- unit tests
-- replace of in_memory_users
+# tests
+The API and repository tests use the test database (app_test, created and reset automatically), so the database service must be running.
+docker compose exec php bin/phpunit
+
+From the host, point the tests at the database port published by compose.override.yaml:
+DATABASE_URL='postgresql://app:postgres@127.0.0.1:5432/app?serverVersion=16&charset=utf8' php bin/phpunit

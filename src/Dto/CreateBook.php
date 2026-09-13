@@ -20,6 +20,8 @@ class CreateBook
         #[Assert\Type('string')]
         #[Assert\Length(max: 255)]
         public readonly string $description,
+        // GreaterThan alone compares a non-numeric string as text ("abc" > "0"), so check the format first.
+        #[Assert\Regex('/^-?\d+(\.\d+)?$/', message: 'Price must be a decimal number, e.g. 29.99.')]
         #[Assert\GreaterThan(0)]
         public readonly string $price,
         #[Assert\Type('string')]

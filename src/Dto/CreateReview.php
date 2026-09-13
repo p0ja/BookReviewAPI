@@ -17,7 +17,7 @@ class CreateReview
         public readonly string $content,
         #[Assert\NotBlank]
         #[Assert\Type('string')]
-        #[Assert\Length(min: 0, max: 5)]
+        #[Assert\Regex('/^[0-5]$/', message: 'Rating must be a whole number from 0 to 5.')]
         public readonly string $rating,
     ) {
     }

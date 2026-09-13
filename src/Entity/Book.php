@@ -50,7 +50,7 @@ class Book
     /**
      * @var Collection<int, BookAuthor>
      */
-    #[ORM\OneToMany(targetEntity: BookAuthor::class, mappedBy: 'book_id')]
+    #[ORM\OneToMany(targetEntity: BookAuthor::class, mappedBy: 'book_id', orphanRemoval: true)]
     #[Ignore]
     private Collection $book_authors;
 
@@ -148,6 +148,11 @@ class Book
         $this->publish_date = $publish_date;
 
         return $this;
+    }
+
+    public function getCreatedAt(): ?\DateTimeImmutable
+    {
+        return $this->createdAt;
     }
 
     /**

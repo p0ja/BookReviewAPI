@@ -1,0 +1,36 @@
+#!/bin/bash
+# Run php-cs-fixer on the staged PHP files so every commit is formatted.
+
+fixer=vendor/bin/php-cs-fixer
+
+if [ ! -x "$fixer" ]; then
+    echo "pre-commit: $fixer not found, run composer install" >&2
+    exit 1
+fi
+
+mapfile -d '' staged < <(git diff --cached --name-only -z --diff-filter=ACMR -- '*.php')
+[ ${#staged[@]} -eq 0 ] && exit 0
+
+# Fixing a partially staged file and re-adding it would also stage the unstaged
+# hunks, so those files are only checked.
+fixable=()
+checkonly=()
+for file in "${staged[@]}"; do
+    if git diff --quiet -- "$file"; then
+        fixable+=("$file")
+    else
+        checkonly+=("$file")
+    fi
+done
+
+if [ ${#fixable[@]} -gt 0 ]; then
+    "$fixer" fix --quiet --config=.php-cs-fixer.dist.php --path-mode=intersection -- "${fixable[@]}" || exit 1
+    git add -- "${fixable[@]}"
+fi
+
+if [ ${#checkonly[@]} -gt 0 ]; then
+    if ! "$fixer" fix --dry-run --diff --config=.php-cs-fixer.dist.php --path-mode=intersection -- "${checkonly[@]}"; then
+        echo "pre-commit: partially staged files need formatting, run composer cs-fix and stage the result" >&2
+        exit 1
+    fi
+fi

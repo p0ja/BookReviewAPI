@@ -18,6 +18,7 @@ final class BookAuthorFakeDataFactory extends PersistentProxyObjectFactory
         private readonly AuthorRepository $authorRepository,
         private readonly BookRepository $bookRepository,
     ) {
+        parent::__construct();
     }
 
     public static function class(): string
