@@ -3,3 +3,15 @@ lexik_jwt_authentication:
     public_key: '%env(resolve:JWT_PUBLIC_KEY)%'
     pass_phrase: '%env(JWT_PASSPHRASE)%'
     token_ttl: 3600
+when@test:
+    # Tests sign tokens with a throwaway HMAC secret so they do not depend on the
+    # local key pair or its passphrase (which lives in the dev secrets vault).
+    lexik_jwt_authentication:
+        secret_key: 'test-only-jwt-signing-secret-not-for-real-use'
+        public_key: ~
+        pass_phrase: ''
+        # A token is created and checked within milliseconds, but the WSL2 wall clock can
+        # step backwards by tens of seconds, which makes "iat" look like it is in the future.
+        clock_skew: 60
+        encoder:
+            signature_algorithm: HS256

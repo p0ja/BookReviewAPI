@@ -26,8 +26,8 @@ class ErrorResponseTest extends WebTestCase
     {
         $this->client->request('GET', '/books');
 
-        $this->assertSame(Response::HTTP_UNAUTHORIZED, $this->client->getResponse()->getStatusCode());
-        $this->assertJson($this->client->getResponse()->getContent());
+        self::assertSame(Response::HTTP_UNAUTHORIZED, $this->client->getResponse()->getStatusCode());
+        self::assertJson($this->client->getResponse()->getContent());
     }
 
     public function testUnknownRouteIsNotFoundWithJson(): void
@@ -36,9 +36,9 @@ class ErrorResponseTest extends WebTestCase
 
         $response = $this->client->getResponse();
 
-        $this->assertSame(Response::HTTP_NOT_FOUND, $response->getStatusCode());
-        $this->assertStringContainsString('application/json', (string) $response->headers->get('Content-Type'));
-        $this->assertArrayHasKey('error', (array) json_decode((string) $response->getContent(), true));
+        self::assertSame(Response::HTTP_NOT_FOUND, $response->getStatusCode());
+        self::assertStringContainsString('application/json', (string) $response->headers->get('Content-Type'));
+        self::assertArrayHasKey('error', (array) json_decode((string) $response->getContent(), true));
     }
 
     /**
@@ -51,9 +51,9 @@ class ErrorResponseTest extends WebTestCase
 
         $response = $this->client->getResponse();
 
-        $this->assertSame(Response::HTTP_METHOD_NOT_ALLOWED, $response->getStatusCode());
-        $this->assertTrue($response->headers->has('Allow'));
-        $this->assertStringContainsString('application/json', (string) $response->headers->get('Content-Type'));
-        $this->assertArrayHasKey('error', (array) json_decode((string) $response->getContent(), true));
+        self::assertSame(Response::HTTP_METHOD_NOT_ALLOWED, $response->getStatusCode());
+        self::assertTrue($response->headers->has('Allow'));
+        self::assertStringContainsString('application/json', (string) $response->headers->get('Content-Type'));
+        self::assertArrayHasKey('error', (array) json_decode((string) $response->getContent(), true));
     }
 }

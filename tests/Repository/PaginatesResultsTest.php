@@ -26,14 +26,14 @@ class PaginatesResultsTest extends TestCase
             }
         };
 
-        $qb = $paginator->apply(new QueryBuilder($this->createStub(EntityManagerInterface::class)), $page, $size);
+        $qb = $paginator->apply(new QueryBuilder(self::createStub(EntityManagerInterface::class)), $page, $size);
 
         return [$qb->getFirstResult(), $qb->getMaxResults()];
     }
 
     public function testDefaultsAreAppliedWhenNothingIsRequested(): void
     {
-        $this->assertSame([0, ConfigData::DEFAULT_PAGE_SIZE], $this->paginate(null, null));
+        self::assertSame([0, ConfigData::DEFAULT_PAGE_SIZE], $this->paginate(null, null));
     }
 
     /**
@@ -42,7 +42,7 @@ class PaginatesResultsTest extends TestCase
      */
     public function testPageWithoutSizeStillAdvancesTheOffset(): void
     {
-        $this->assertSame(
+        self::assertSame(
             [ConfigData::DEFAULT_PAGE_SIZE, ConfigData::DEFAULT_PAGE_SIZE],
             $this->paginate(2, null)
         );
@@ -50,17 +50,17 @@ class PaginatesResultsTest extends TestCase
 
     public function testOffsetIsDerivedFromPageAndSize(): void
     {
-        $this->assertSame([40, 20], $this->paginate(3, 20));
+        self::assertSame([40, 20], $this->paginate(3, 20));
     }
 
     public function testSizeIsClampedToTheMaximum(): void
     {
-        $this->assertSame([0, ConfigData::MAX_PAGE_SIZE], $this->paginate(1, 1_000_000));
+        self::assertSame([0, ConfigData::MAX_PAGE_SIZE], $this->paginate(1, 1_000_000));
     }
 
     public function testNonPositiveValuesFallBackToTheFirstPage(): void
     {
-        $this->assertSame([0, 1], $this->paginate(0, 0));
-        $this->assertSame([0, 1], $this->paginate(-5, -5));
+        self::assertSame([0, 1], $this->paginate(0, 0));
+        self::assertSame([0, 1], $this->paginate(-5, -5));
     }
 }

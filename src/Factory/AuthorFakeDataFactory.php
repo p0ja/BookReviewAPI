@@ -20,7 +20,7 @@ final class AuthorFakeDataFactory extends PersistentProxyObjectFactory
     protected function defaults(): array|callable
     {
         return [
-            'name' => self::faker()->name,
+            'name' => self::faker()->name(),
             'info' => self::faker()->text(255),
         ];
     }

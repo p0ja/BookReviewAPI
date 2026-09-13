@@ -47,5 +47,9 @@ curl -v -X POST http://127.0.0.1:8000/books -H 'Authorization: Bearer [jwt token
 # create review
 curl -v -X POST http://127.0.0.1:8000/books/{id}/reviews -H 'Authorization: Bearer [jwt token]' -H 'Content-Type: application/json' -d '{"name":"reviewer name","content":"prosty nowy review content","rating":"3"}'
 
-# todo:
-- unit tests
+# tests
+The API and repository tests use the test database (app_test, created and reset automatically), so the database service must be running.
+docker compose exec php bin/phpunit
+
+From the host, point the tests at the database port published by compose.override.yaml:
+DATABASE_URL='postgresql://app:postgres@127.0.0.1:5432/app?serverVersion=16&charset=utf8' php bin/phpunit

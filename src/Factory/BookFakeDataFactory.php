@@ -24,7 +24,7 @@ final class BookFakeDataFactory extends PersistentProxyObjectFactory
             'isbn' => self::faker()->isbn13(),
             'price' => self::faker()->randomFloat(),
             'description' => self::faker()->realText(200),
-            'genre' => self::faker()->word,
+            'genre' => self::faker()->word(),
             'publish_date' => self::faker()->date(),
         ];
     }

@@ -36,10 +36,11 @@
         "symfonycasts/verify-email-bundle": "1.17.*"
     },
     "require-dev": {
-        "roave/security-advisories": "dev-latest",
+        "dama/doctrine-test-bundle": "^8.3",
         "doctrine/doctrine-fixtures-bundle": "^4.1",
         "friendsofphp/php-cs-fixer": "^3.75",
         "phpunit/phpunit": "^12.1.5",
+        "roave/security-advisories": "dev-latest",
         "symfony/browser-kit": "7.2.*",
         "symfony/css-selector": "7.2.*",
         "symfony/debug-bundle": "7.2.*",
