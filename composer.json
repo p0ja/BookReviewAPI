@@ -83,7 +83,10 @@
             "cache:clear": "symfony-cmd",
             "assets:install %PUBLIC_DIR%": "symfony-cmd"
         },
+        "install-git-hooks": "git rev-parse --git-dir > /dev/null 2>&1 && git config core.hooksPath .githooks || true",
+        "cs-fix": "php-cs-fixer fix",
         "post-install-cmd": [
+            "@install-git-hooks",
             "@auto-scripts"
         ],
         "post-update-cmd": [

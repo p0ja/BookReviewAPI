@@ -21,7 +21,8 @@ class AppFixtures extends Fixture
         BookAuthorFakeDataFactory::createMany(20);
         BookReviewFakeDataFactory::createMany(20);
 
-        UserFakeDataFactory::createMany(2);
+        UserFakeDataFactory::createOne(['email' => 'admin@example.com', 'password' => 'admin', 'roles' => ['ROLE_ADMIN']]);
+        UserFakeDataFactory::createOne(['email' => 'user@example.com', 'password' => 'user']);
 
         $manager->flush();
     }
