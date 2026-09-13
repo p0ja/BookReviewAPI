@@ -1,0 +1,27 @@
+# Normalize every text file to LF in the repository and in the working tree.
+# eol=lf overrides a contributor's core.autocrlf, so a Windows or WSL checkout
+# no longer produces CRLF that php-cs-fixer then rejects.
+* text=auto eol=lf
+
+# Shell scripts and the PHP entry points must be LF or the shebang breaks
+# inside the Docker image.
+*.sh text eol=lf
+bin/console text eol=lf
+frankenphp/docker-entrypoint.sh text eol=lf
+
+# Keep binaries out of the text pipeline if any are added later.
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.webp binary
+*.pdf binary
+*.woff binary
+*.woff2 binary
+*.ttf binary
+*.eot binary
+*.zip binary
+*.gz binary
+*.phar binary
+*.pem binary
