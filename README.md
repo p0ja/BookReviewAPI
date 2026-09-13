@@ -39,5 +39,3 @@ curl -v -X POST http://127.0.0.1:8000/books/{id}/reviews -H 'Authorization: Bear
 # todo:
 - unit tests
 - replace of in_memory_users
-
-See ANALYSIS.md for a full review of the project and the remaining backlog.
