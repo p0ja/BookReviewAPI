@@ -28,7 +28,22 @@
 /.phpunit.cache/
 ###< phpunit/phpunit ###
 
-###< docker/frankenphp ###
-/frankenphp/conf.d/*_Zone.Identifier
-###< docker/frankenphp ###
+###> windows ###
+# Mark-of-the-Web streams created when files are copied from Windows into WSL
+*:Zone.Identifier
+Thumbs.db
+desktop.ini
+###< windows ###
+
+###> ide ###
+/.idea/
+/.vscode/
+*.swp
+.DS_Store
+###< ide ###
+
+###> local ###
+# Local-only project review notes
+/ANALYSIS.md
+###< local ###
 
