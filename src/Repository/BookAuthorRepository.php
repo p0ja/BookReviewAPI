@@ -50,6 +50,8 @@ class BookAuthorRepository extends ServiceEntityRepository
                 ],
                 LogLevel::ERROR,
             );
+
+            throw $e;
         }
 
         return $bookAuthor;

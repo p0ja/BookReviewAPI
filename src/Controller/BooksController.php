@@ -12,9 +12,9 @@ use App\Repository\AuthorRepository;
 use App\Repository\BookAuthorRepository;
 use App\Repository\BookRepository;
 use App\Repository\ReviewRepository;
-use Exception;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpKernel\Attribute\MapQueryParameter;
 use Symfony\Component\HttpKernel\Attribute\MapRequestPayload;
 use Symfony\Component\Routing\Attribute\Route;
 
@@ -31,33 +31,23 @@ final class BooksController extends AbstractController
     ) {
     }
 
-    #[Route('/books/{page?}/{size?}/{orderBy?}', name: 'rest_books', methods: ['GET'])]
-    public function list(?int $page, ?int $size, ?string $orderBy): Response
-    {
-        try {
-            $books = $this->bookRepository->findBooks($page, $size, $orderBy);
-            $booksData = [];
+    #[Route('/books', name: 'rest_books', methods: ['GET'])]
+    public function list(
+        #[MapQueryParameter(validationFailedStatusCode: Response::HTTP_BAD_REQUEST)] ?int $page = null,
+        #[MapQueryParameter(validationFailedStatusCode: Response::HTTP_BAD_REQUEST)] ?int $size = null,
+        #[MapQueryParameter(validationFailedStatusCode: Response::HTTP_BAD_REQUEST)] ?string $orderBy = null,
+    ): Response {
+        $books = $this->bookRepository->findBooks($page, $size, $orderBy);
+        $booksData = [];
 
-            foreach ($books as $book) {
-                $booksData[] = $this->bookData->getOutput($book);
-            }
-
-            return $this->json($booksData, Response::HTTP_OK);
-
-        } catch (Exception $e) {
-            $this->logger->log(
-                NamespaceEnum::REST_BOOK->value,
-                'Books listing exception:',
-                [
-                    'message' => $e->getMessage(),
-                ]
-            );
-
-            return $this->json([]);
+        foreach ($books as $book) {
+            $booksData[] = $this->bookData->getOutput($book);
         }
+
+        return $this->json($booksData, Response::HTTP_OK);
     }
 
-    #[Route('/books/{id}', name: 'rest_book', methods: ['GET'])]
+    #[Route('/books/{id}', name: 'rest_book', requirements: ['id' => '\d+'], methods: ['GET'])]
     public function get(int $id): Response
     {
         $book = $this->bookRepository->find($id);
@@ -94,7 +84,7 @@ final class BooksController extends AbstractController
         return $this->json($booksData, Response::HTTP_OK);
     }
 
-    #[Route('/books/{id}/reviews', name: 'rest_book_reviews', methods: ['GET'])]
+    #[Route('/books/{id}/reviews', name: 'rest_book_reviews', requirements: ['id' => '\d+'], methods: ['GET'])]
     public function getReviews(int $id): Response
     {
         $reviews = $this->reviewRepository->findByBookId($id);
@@ -118,7 +108,7 @@ final class BooksController extends AbstractController
         return $this->json($reviewsData, Response::HTTP_OK);
     }
 
-    #[Route('/books/{id}/reviews', name: 'review_create', methods:['POST'])]
+    #[Route('/books/{id}/reviews', name: 'review_create', requirements: ['id' => '\d+'], methods:['POST'])]
     public function createReview(int $id, #[MapRequestPayload] CreateReview $reviewPost): Response
     {
         $book = $this->bookRepository->find($id);
@@ -131,7 +121,7 @@ final class BooksController extends AbstractController
         return $this->json($reviewData, Response::HTTP_CREATED);
     }
 
-    #[Route('/book/delete/{id}', name: 'rest_book_delete', methods:['DELETE'])]
+    #[Route('/book/delete/{id}', name: 'rest_book_delete', requirements: ['id' => '\d+'], methods:['DELETE'])]
     public function deleteBook(int $id): Response
     {
         $book = $this->bookRepository->removeBook($id);

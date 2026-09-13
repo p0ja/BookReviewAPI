@@ -19,6 +19,8 @@ use Psr\Log\LogLevel;
  */
 class ReviewRepository extends ServiceEntityRepository
 {
+    use PaginatesResults;
+
     public function __construct(
         protected ManagerRegistry $registry,
         private readonly LoggerInterface $logger,
@@ -61,6 +63,8 @@ class ReviewRepository extends ServiceEntityRepository
                 ],
                 LogLevel::ERROR,
             );
+
+            throw $e;
         }
 
         return $review;
@@ -68,14 +72,7 @@ class ReviewRepository extends ServiceEntityRepository
 
     public function findReviews(?int $page, ?int $size, ?string $orderBy): array
     {
-        $qb = $this->createQueryBuilder('b');
-        if ($page) {
-            $offset = ($page - 1) * $size;
-            $qb->setFirstResult($offset);
-        }
-        if ($size) {
-            $qb->setMaxResults($size);
-        }
+        $qb = $this->applyPagination($this->createQueryBuilder('b'), $page, $size);
         if (in_array($orderBy, ConfigData::REVIEW_SORTING_COLUMNS, true)) {
             $qb->orderBy('b.'.$orderBy, 'ASC');
         }

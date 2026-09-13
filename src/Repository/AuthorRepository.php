@@ -49,6 +49,8 @@ class AuthorRepository extends ServiceEntityRepository
                 ],
                 LogLevel::ERROR,
             );
+
+            throw $e;
         }
 
         return $author;

@@ -17,7 +17,18 @@ bin/console security:hash-password
 curl -X POST -H "Content-Type: application/json" https://localhost/login_check -d '{"username":"username","password":"password"}'
 
 # requests
-curl -X GET -H "Content-Type: application/json" -H "Authorization: Bearer [jwt token]" https://localhost/books
+# list books - pagination and sorting are query parameters (page, size, orderBy)
+# size defaults to 20 and is capped at 100; a malformed value answers 400
+curl -X GET -H "Authorization: Bearer [jwt token]" 'https://localhost/books?page=1&size=20&orderBy=title'
+
+# single book
+curl -X GET -H "Authorization: Bearer [jwt token]" https://localhost/books/{id}
+
+# reviews of a book
+curl -X GET -H "Authorization: Bearer [jwt token]" https://localhost/books/{id}/reviews
+
+# list reviews
+curl -X GET -H "Authorization: Bearer [jwt token]" 'https://localhost/reviews?page=1&size=20&orderBy=rating'
 
 # create book
 curl -v -X POST http://127.0.0.1:8000/books -H 'Authorization: Bearer [jwt token]' -H 'Content-Type: application/json' -d '{"title":"nowy title","isbn":"nowyIsbn0123","description":"book description","price":"123.14","genre":"PHP","publish_date":"2023-12-12","authors":[{"name":"author1 name and surname","info":"information about author"},{"name":"author2 name","info":"information about author"}]}'
@@ -26,6 +37,7 @@ curl -v -X POST http://127.0.0.1:8000/books -H 'Authorization: Bearer [jwt token
 curl -v -X POST http://127.0.0.1:8000/books/{id}/reviews -H 'Authorization: Bearer [jwt token]' -H 'Content-Type: application/json' -d '{"name":"reviewer name","content":"prosty nowy review content","rating":"3"}'
 
 # todo:
-- xdebug
 - unit tests
 - replace of in_memory_users
+
+See ANALYSIS.md for a full review of the project and the remaining backlog.
