@@ -33,7 +33,7 @@ final class ReviewController extends AbstractController
         return $this->json($reviewsData, Response::HTTP_OK);
     }
 
-    #[Route('/review/delete/{id}', name: 'rest_review_delete', requirements: ['id' => '\d+'], methods:['DELETE'])]
+    #[Route('/review/delete/{id}', name: 'rest_review_delete', requirements: ['id' => '\d+'], methods: ['DELETE'])]
     public function delete(int $id): Response
     {
         $result = $this->reviewRepository->removeReview($id);

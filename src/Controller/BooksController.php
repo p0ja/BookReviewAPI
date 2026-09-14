@@ -68,7 +68,7 @@ final class BooksController extends AbstractController
         return $this->json($booksData, Response::HTTP_OK);
     }
 
-    #[Route('/books', name: 'book_create', methods:['POST'])]
+    #[Route('/books', name: 'book_create', methods: ['POST'])]
     public function create(#[MapRequestPayload] CreateBook $bookPost): Response
     {
         $book = $this->bookRepository->createBook($bookPost);
@@ -108,7 +108,7 @@ final class BooksController extends AbstractController
         return $this->json($reviewsData, Response::HTTP_OK);
     }
 
-    #[Route('/books/{id}/reviews', name: 'review_create', requirements: ['id' => '\d+'], methods:['POST'])]
+    #[Route('/books/{id}/reviews', name: 'review_create', requirements: ['id' => '\d+'], methods: ['POST'])]
     public function createReview(int $id, #[MapRequestPayload] CreateReview $reviewPost): Response
     {
         $book = $this->bookRepository->find($id);
@@ -121,7 +121,7 @@ final class BooksController extends AbstractController
         return $this->json($reviewData, Response::HTTP_CREATED);
     }
 
-    #[Route('/book/delete/{id}', name: 'rest_book_delete', requirements: ['id' => '\d+'], methods:['DELETE'])]
+    #[Route('/book/delete/{id}', name: 'rest_book_delete', requirements: ['id' => '\d+'], methods: ['DELETE'])]
     public function deleteBook(int $id): Response
     {
         $book = $this->bookRepository->removeBook($id);

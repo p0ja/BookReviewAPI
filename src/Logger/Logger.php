@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace App\Logger;
 
-use Psr\Log\LogLevel;
 use Monolog\Logger as MonologLogger;
+use Psr\Log\LogLevel;
 
 /**
  * @method emergency(string $namespace, string $message, array $context = []): void
@@ -31,7 +31,7 @@ class Logger implements LoggerInterface
     ];
 
     public function __construct(
-        private readonly MonologLogger $logger
+        private readonly MonologLogger $logger,
     ) {
     }
 

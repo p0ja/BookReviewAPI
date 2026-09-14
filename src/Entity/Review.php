@@ -3,7 +3,6 @@
 namespace App\Entity;
 
 use App\Repository\ReviewRepository;
-use DateTimeImmutable;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 use Gedmo\Mapping\Annotation\Timestampable;
@@ -30,7 +29,7 @@ class Review
     #[ORM\Column(nullable: true)]
     #[Timestampable(on: 'create')]
     #[Ignore]
-    private ?DateTimeImmutable $submit_date = null;
+    private ?\DateTimeImmutable $submit_date = null;
 
     #[ORM\ManyToOne(inversedBy: 'reviews')]
     #[ORM\JoinColumn(nullable: false)]
@@ -84,12 +83,12 @@ class Review
         return $this;
     }
 
-    public function getSubmitDate(): ?DateTimeImmutable
+    public function getSubmitDate(): ?\DateTimeImmutable
     {
         return $this->submit_date;
     }
 
-    public function setSubmitDate(DateTimeImmutable $submit_date): static
+    public function setSubmitDate(\DateTimeImmutable $submit_date): static
     {
         $this->submit_date = $submit_date;
 

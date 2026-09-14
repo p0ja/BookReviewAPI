@@ -8,10 +8,8 @@ use App\Entity\Book;
 use App\Entity\Review;
 use App\Logger\LoggerInterface;
 use App\Logger\NamespaceEnum;
-use DateTimeImmutable;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\Persistence\ManagerRegistry;
-use Exception;
 use Psr\Log\LogLevel;
 
 /**
@@ -39,7 +37,7 @@ class ReviewRepository extends ServiceEntityRepository
 
     public function create(Book $book, CreateReview $reviewPost): Review
     {
-        $submitDate = new DateTimeImmutable("now");
+        $submitDate = new \DateTimeImmutable('now');
 
         $review = new Review();
         $review->setBookId($book);
@@ -52,7 +50,7 @@ class ReviewRepository extends ServiceEntityRepository
             $em = $this->getEntityManager();
             $em->persist($review);
             $em->flush();
-        } catch (Exception $e) {
+        } catch (\Exception $e) {
             $this->logger->log(
                 NamespaceEnum::REST_BOOK->value,
                 $e->getMessage(),
