@@ -11,7 +11,6 @@ use App\Logger\LoggerInterface;
 use App\Logger\NamespaceEnum;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\Persistence\ManagerRegistry;
-use Exception;
 use Psr\Log\LogLevel;
 
 /**
@@ -47,7 +46,7 @@ class BookRepository extends ServiceEntityRepository
             $book = new Book();
         }
 
-        $price = round((float)$bookPost->price, 2);
+        $price = round((float) $bookPost->price, 2);
 
         $book->setTitle(trim($bookPost->title));
         $book->setIsbn($isbn);
@@ -60,7 +59,7 @@ class BookRepository extends ServiceEntityRepository
             $em = $this->getEntityManager();
             $em->persist($book);
             $em->flush();
-        } catch (Exception $e) {
+        } catch (\Exception $e) {
             $this->logger->log(
                 NamespaceEnum::REST_BOOK->value,
                 $e->getMessage(),
@@ -100,6 +99,6 @@ class BookRepository extends ServiceEntityRepository
             ->getQuery()
             ->getResult();
 
-        return (bool)$bookCheck;
+        return (bool) $bookCheck;
     }
 }

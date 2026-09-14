@@ -11,7 +11,6 @@ use App\Logger\LoggerInterface;
 use App\Logger\NamespaceEnum;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\Persistence\ManagerRegistry;
-use Exception;
 use Psr\Log\LogLevel;
 
 /**
@@ -39,7 +38,7 @@ class BookAuthorRepository extends ServiceEntityRepository
             $em = $this->getEntityManager();
             $em->persist($bookAuthor);
             $em->flush();
-        } catch (Exception $e) {
+        } catch (\Exception $e) {
             $this->logger->log(
                 NamespaceEnum::REST_BOOK_AUTHOR->value,
                 $e->getMessage(),
@@ -57,7 +56,7 @@ class BookAuthorRepository extends ServiceEntityRepository
         return $bookAuthor;
     }
 
-    private function getBookAuthor(int $bookId, int $authorId): BookAuthor|null
+    private function getBookAuthor(int $bookId, int $authorId): ?BookAuthor
     {
         $bookAuthor = $this->createQueryBuilder('b')
             ->andWhere('b.book_id = :val')

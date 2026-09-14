@@ -10,7 +10,6 @@ class ReviewData
 {
     public function getOutput(Review $review): array
     {
-
         return [
             'review_id' => $review->getId(),
             'book_id' => $review->getBook()?->getId(),

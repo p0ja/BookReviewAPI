@@ -53,3 +53,35 @@ docker compose exec php bin/phpunit
 
 From the host, point the tests at the database port published by compose.override.yaml:
 DATABASE_URL='postgresql://app:postgres@127.0.0.1:5432/app?serverVersion=16&charset=utf8' php bin/phpunit
+
+# todo:
+## missing functionality
+- update endpoints: PUT/PATCH /books/{id} and /reviews/{id} (only create and delete exist)
+- single review endpoint: GET /reviews/{id}
+- authors resource: GET /authors, GET /authors/{id} and the books of an author
+- user registration (symfonycasts/verify-email-bundle is installed but unused)
+- authorization: any logged-in user can delete any book or review; deletes should require ROLE_ADMIN, and reviews should belong to a user so only the owner can edit them
+- pagination metadata (total, page, size) in /books and /reviews responses
+- filtering and search: by title, genre, author and rating
+- average rating and review count per book
+- API documentation (OpenAPI), CORS, rate limiting on /login_check
+
+## api consistency
+- REST paths: DELETE /books/{id} and /reviews/{id} instead of /book/delete/{id} and /review/delete/{id}
+- POST /books should return 201 with a Location header (currently 200)
+- POST /books with an existing ISBN overwrites that book and appends authors; return 409 instead
+- one error format: JWT failures answer {"code":401,"message":...}, other errors {"error":...}
+
+## known bugs
+- nested authors in POST /books are not validated: an author without a name, or not an object, answers 500 (needs a CreateAuthor DTO)
+- the logger ignores the requested level and logs everything at INFO
+- creating a book flushes once per author, so a failure can leave a book with only some of its authors; use one transaction
+
+## technical debt
+- N+1 queries on /books and /reviews (authors and books are lazy-loaded per row)
+- data model: price as decimal(10,2), publish_date as date, description as text, unique (book_id, author_id) in book_author
+- format src with composer cs-fix: the CI style check fails on 11 files
+- CI: run the tests against PostgreSQL instead of SQLite, enable the disabled steps in .github/workflows/ci.yml, add PHPStan
+- remove the stale phpunit.xml.dist (phpunit.dist.xml is the one in use)
+- remove the unused #[Timestampable] attribute on Book::$createdAt (the Stof extensions bundle is not registered)
+- move JWT_PASSPHRASE and APP_SECRET out of the committed .env files

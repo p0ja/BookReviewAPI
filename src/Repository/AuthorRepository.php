@@ -9,7 +9,6 @@ use App\Logger\LoggerInterface;
 use App\Logger\NamespaceEnum;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\Persistence\ManagerRegistry;
-use Exception;
 use Psr\Log\LogLevel;
 
 /**
@@ -39,7 +38,7 @@ class AuthorRepository extends ServiceEntityRepository
             $em = $this->getEntityManager();
             $em->persist($author);
             $em->flush();
-        } catch (Exception $e) {
+        } catch (\Exception $e) {
             $this->logger->log(
                 NamespaceEnum::REST_AUTHOR->value,
                 $e->getMessage(),
@@ -65,6 +64,6 @@ class AuthorRepository extends ServiceEntityRepository
             ->getQuery()
             ->getResult();
 
-        return (bool)$authorCheck;
+        return (bool) $authorCheck;
     }
 }
