@@ -197,6 +197,9 @@ class ReviewControllerTest extends ApiTestCase
         BookReviewFakeDataFactory::assert()->exists(['id' => $review->getId(), 'content' => 'Original']);
     }
 
+    /**
+     * @param array<string, string> $payload
+     */
     #[DataProvider('changes')]
     public function testReviewsWithoutAnOwnerAreAdminOnly(string $method, array $payload): void
     {
@@ -207,6 +210,9 @@ class ReviewControllerTest extends ApiTestCase
         self::assertResponseStatusCodeSame(Response::HTTP_FORBIDDEN);
     }
 
+    /**
+     * @param array<string, string> $payload
+     */
     #[DataProvider('changes')]
     public function testAdminsCanChangeAnyReview(string $method, array $payload): void
     {

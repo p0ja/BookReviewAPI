@@ -22,10 +22,10 @@ final class BookFakeDataFactory extends PersistentProxyObjectFactory
         return [
             'title' => self::faker()->sentence(5),
             'isbn' => self::faker()->isbn13(),
-            'price' => self::faker()->randomFloat(),
+            'price' => (string) self::faker()->randomFloat(2, 1, 200),
             'description' => self::faker()->realText(200),
             'genre' => self::faker()->word(),
-            'publish_date' => self::faker()->date(),
+            'publish_date' => \DateTimeImmutable::createFromMutable(self::faker()->dateTimeBetween('-30 years')),
         ];
     }
 }

@@ -19,8 +19,8 @@ class BookRepositoryTest extends RepositoryTestCase
         self::assertSame('Clean Architecture', $book->getTitle());
         self::assertSame('9780134494166', $book->getIsbn());
         self::assertSame('Software', $book->getGenre());
-        self::assertSame('2017-09-10', $book->getPublishDate());
-        self::assertSame(29.99, $book->getPrice());
+        self::assertSame('2017-09-10', $book->getPublishDate()?->format('Y-m-d'));
+        self::assertSame('29.99', $book->getPrice());
     }
 
     public function testIsbnExistsIgnoresSurroundingWhitespace(): void
@@ -62,7 +62,7 @@ class BookRepositoryTest extends RepositoryTestCase
             description: 'A craftsman\'s guide',
             price: $price,
             genre: ' Software ',
-            publish_date: ' 2017-09-10 ',
+            publish_date: '2017-09-10',
         );
     }
 }

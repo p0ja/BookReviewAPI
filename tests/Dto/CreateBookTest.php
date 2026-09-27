@@ -44,7 +44,17 @@ class CreateBookTest extends TestCase
         yield 'price in scientific notation' => ['price', '1e3'];
         yield 'price with a comma separator' => ['price', '29,99'];
         yield 'too long genre' => ['genre', str_repeat('a', 256)];
-        yield 'too long publish date' => ['publish_date', str_repeat('1', 26)];
+        yield 'price above what decimal(10,2) holds' => ['price', '100000000'];
+        yield 'price rounding up past the limit' => ['price', '99999999.995'];
+        yield 'too long description' => ['description', str_repeat('a', 10001)];
+        yield 'publish date that is not a date' => ['publish_date', 'last spring'];
+        yield 'publish date in another format' => ['publish_date', '10.09.2017'];
+        yield 'impossible publish date' => ['publish_date', '2017-02-30'];
+    }
+
+    public function testLongDescriptionAndHighestPriceAreValid(): void
+    {
+        self::assertCount(0, $this->validate(['description' => str_repeat('a', 10000), 'price' => '99999999.99']));
     }
 
     #[DataProvider('invalidAuthors')]

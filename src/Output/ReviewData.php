@@ -8,6 +8,9 @@ use App\Entity\Review;
 
 class ReviewData
 {
+    /**
+     * @return array<string, mixed>
+     */
     public function getOutput(Review $review): array
     {
         return [

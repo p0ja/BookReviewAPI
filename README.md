@@ -92,17 +92,13 @@ Browsers may call the API from localhost or 127.0.0.1 on any port (CORS); set CO
 Every error answers {"error": "..."} with the matching status: 401 (missing, invalid or expired token, wrong password), 403 (not allowed to change it), 404, 409 (an ISBN or email that is already taken), 422 (validation), 429 (too many failed logins).
 POST /books answers 201 with a Location header pointing at the new book.
 
+# static analysis
+PHPStan (level 6, config in phpstan.dist.neon) checks src and tests; CI runs it too:
+composer phpstan
+
 # tests
 The API and repository tests use the test database (app_test, created and reset automatically), so the database service must be running.
 docker compose exec php bin/phpunit
 
 From the host, point the tests at the database port published by compose.override.yaml:
 DATABASE_URL='postgresql://app:postgres@127.0.0.1:5432/app?serverVersion=16&charset=utf8' php bin/phpunit
-
-# todo:
-## technical debt
-- N+1 queries on /books and /reviews (authors and books are lazy-loaded per row)
-- data model: price as decimal(10,2), publish_date as date, description as text, unique (book_id, author_id) in book_author
-- CI: run the tests against PostgreSQL instead of SQLite, enable the disabled steps in .github/workflows/ci.yml, add PHPStan
-- remove the stale phpunit.xml.dist (phpunit.dist.xml is the one in use)
-- remove the unused #[Timestampable] attribute on Book::$createdAt (the Stof extensions bundle is not registered)

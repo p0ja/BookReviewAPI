@@ -5,7 +5,6 @@ namespace App\Entity;
 use App\Repository\ReviewRepository;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
-use Gedmo\Mapping\Annotation\Timestampable;
 use Symfony\Component\Serializer\Attribute\Ignore;
 
 #[ORM\Entity(repositoryClass: ReviewRepository::class)]
@@ -27,7 +26,6 @@ class Review
     private ?int $rating = null;
 
     #[ORM\Column(nullable: true)]
-    #[Timestampable(on: 'create')]
     #[Ignore]
     private ?\DateTimeImmutable $submit_date = null;
 

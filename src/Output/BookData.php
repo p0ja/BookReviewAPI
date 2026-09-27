@@ -40,6 +40,8 @@ class BookData
 
     /**
      * @param array{average: float, count: int}|null $rating from ReviewRepository::ratingStats(), null when the book has no reviews
+     *
+     * @return array<string, mixed>
      */
     public function getOutput(Book $book, ?array $rating = null): array
     {
@@ -49,16 +51,20 @@ class BookData
             'id' => $book->getId(),
             'title' => $book->getTitle(),
             'isbn' => $book->getIsbn(),
-            'price' => $book->getPrice(),
+            // A JSON number, as before the column became a decimal.
+            'price' => null !== $book->getPrice() ? (float) $book->getPrice() : null,
             'description' => $book->getDescription(),
             'genre' => $book->getGenre(),
-            'publish_date' => $book->getPublishDate(),
+            'publish_date' => $book->getPublishDate()?->format('Y-m-d'),
             'authors' => $authorsData,
             'average_rating' => $rating['average'] ?? null,
             'review_count' => $rating['count'] ?? 0,
         ];
     }
 
+    /**
+     * @return list<array{id: ?int, name: ?string}>
+     */
     private function getBookAuthors(Book $book): array
     {
         $authors = $book->getBookAuthors();

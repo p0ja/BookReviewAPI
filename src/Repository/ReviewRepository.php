@@ -28,6 +28,9 @@ class ReviewRepository extends ServiceEntityRepository
         parent::__construct($registry, Review::class);
     }
 
+    /**
+     * @return list<Review>
+     */
     public function findByBookId(int $id): array
     {
         return $this->createQueryBuilder('b')
@@ -91,7 +94,11 @@ class ReviewRepository extends ServiceEntityRepository
      */
     public function findReviews(?int $page, ?int $size, ?string $orderBy, ?int $rating = null): Page
     {
-        $qb = $this->createQueryBuilder('b');
+        // The book comes with each review (its title is in the output), in the same query.
+        // A many-to-one join adds no rows, so paging stays exact.
+        $qb = $this->createQueryBuilder('b')
+            ->addSelect('book')
+            ->innerJoin('b.book_id', 'book');
         if (null !== $rating) {
             $qb->andWhere('b.rating = :rating')->setParameter('rating', $rating);
         }
@@ -101,7 +108,10 @@ class ReviewRepository extends ServiceEntityRepository
         // A stable order, or rows could move between pages.
         $qb->addOrderBy('b.id', 'ASC');
 
-        return $this->paginate($qb, $page, $size);
+        /** @var Page<Review> $result */
+        $result = $this->paginate($qb, $page, $size);
+
+        return $result;
     }
 
     /**

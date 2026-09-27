@@ -5,8 +5,8 @@ namespace App\Entity;
 use App\Repository\BookRepository;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
+use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
-use Gedmo\Mapping\Annotation\Timestampable;
 use Symfony\Component\Serializer\Attribute\Ignore;
 
 #[ORM\Entity(repositoryClass: BookRepository::class)]
@@ -24,20 +24,22 @@ class Book
     #[ORM\Column(length: 255, unique: true)]
     private ?string $isbn = null;
 
-    #[ORM\Column(length: 255, nullable: true)]
+    #[ORM\Column(type: Types::TEXT, nullable: true)]
     private ?string $description = null;
 
-    #[ORM\Column]
-    private ?float $price = null;
+    /**
+     * Exact money: Doctrine hands a decimal over as a string, e.g. "29.99".
+     */
+    #[ORM\Column(type: Types::DECIMAL, precision: 10, scale: 2)]
+    private ?string $price = null;
 
     #[ORM\Column(length: 255, nullable: true)]
     private ?string $genre = null;
 
-    #[ORM\Column(length: 25, nullable: true)]
-    private ?string $publish_date = null;
+    #[ORM\Column(type: Types::DATE_IMMUTABLE, nullable: true)]
+    private ?\DateTimeImmutable $publish_date = null;
 
     #[ORM\Column(nullable: true)]
-    #[Timestampable(on: 'create')]
     #[Ignore]
     private ?\DateTimeImmutable $createdAt = null;
 
@@ -114,12 +116,12 @@ class Book
         return $this;
     }
 
-    public function getPrice(): ?float
+    public function getPrice(): ?string
     {
         return $this->price;
     }
 
-    public function setPrice(float $price): static
+    public function setPrice(string $price): static
     {
         $this->price = $price;
 
@@ -138,12 +140,12 @@ class Book
         return $this;
     }
 
-    public function getPublishDate(): ?string
+    public function getPublishDate(): ?\DateTimeImmutable
     {
         return $this->publish_date;
     }
 
-    public function setPublishDate(?string $publish_date): static
+    public function setPublishDate(?\DateTimeImmutable $publish_date): static
     {
         $this->publish_date = $publish_date;
 
