@@ -7,14 +7,16 @@ namespace App\Repository;
 use App\Entity\User;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\Persistence\ManagerRegistry;
+use Symfony\Bridge\Doctrine\Security\User\UserLoaderInterface;
 use Symfony\Component\Security\Core\Exception\UnsupportedUserException;
 use Symfony\Component\Security\Core\User\PasswordAuthenticatedUserInterface;
 use Symfony\Component\Security\Core\User\PasswordUpgraderInterface;
+use Symfony\Component\Security\Core\User\UserInterface;
 
 /**
  * @extends ServiceEntityRepository<User>
  */
-class UserRepository extends ServiceEntityRepository implements PasswordUpgraderInterface
+class UserRepository extends ServiceEntityRepository implements PasswordUpgraderInterface, UserLoaderInterface
 {
     public function __construct(
         private readonly ManagerRegistry $registry,
@@ -44,9 +46,36 @@ class UserRepository extends ServiceEntityRepository implements PasswordUpgrader
         $em->flush();
     }
 
+    /**
+     * Whether an account uses this email in any letter case.
+     */
     public function emailExists(string $email): bool
     {
-        return null !== $this->findOneBy(['email' => $email]);
+        return null !== $this->findOneByEmailIgnoringCase($email);
+    }
+
+    /**
+     * Login and JWT user loading (security.yaml): emails match in any letter case, as
+     * people type them differently. Registration stores them in lower case; for older
+     * accounts that differ only by case, the exact spelling wins.
+     */
+    public function loadUserByIdentifier(string $identifier): ?UserInterface
+    {
+        return $this->findOneBy(['email' => $identifier]) ?? $this->findOneByEmailIgnoringCase($identifier);
+    }
+
+    /**
+     * Served by the idx_users_email_lower index (migration Version20260927125000).
+     */
+    private function findOneByEmailIgnoringCase(string $email): ?User
+    {
+        return $this->createQueryBuilder('u')
+            ->andWhere('LOWER(u.email) = :email')
+            ->setParameter('email', mb_strtolower(trim($email)))
+            ->orderBy('u.id', 'ASC')
+            ->setMaxResults(1)
+            ->getQuery()
+            ->getOneOrNullResult();
     }
 
     public function findOneByAccessToken(string $identifier): ?User

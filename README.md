@@ -1,6 +1,8 @@
 # BookReviewAPI
 REST API books and reviews management
 
+See CHANGELOG.md for API changes and upgrade steps.
+
 # local secrets (first run)
 The committed .env holds defaults only; secrets go in .env.local, which git ignores. Create it once:
 printf 'APP_SECRET=%s\nJWT_PASSPHRASE=%s\n' "$(openssl rand -hex 16)" "$(openssl rand -hex 32)" > .env.local
@@ -38,6 +40,7 @@ bin/console security:hash-password
 
 # register and log in (default token ttl=1h)
 Anyone can create a ROLE_USER account (password at least 8 characters); it can log in straight away.
+Each address may try 10 registrations per hour (config/packages/rate_limiter.yaml); after that /register answers 429 with Retry-After.
 curl -X POST -H "Content-Type: application/json" https://localhost/register -d '{"email":"reader@example.com","password":"long enough"}'
 
 Users are loaded from the users table by email. The fixtures create admin@example.com / admin (ROLE_ADMIN) and user@example.com / user (ROLE_USER).
@@ -89,7 +92,7 @@ Reviews belong to the user who posted them (user_id). Reviews from before that h
 Browsers may call the API from localhost or 127.0.0.1 on any port (CORS); set CORS_ALLOW_ORIGIN (a regex) in .env.local for other origins.
 
 # errors
-Every error answers {"error": "..."} with the matching status: 401 (missing, invalid or expired token, wrong password), 403 (not allowed to change it), 404, 409 (an ISBN or email that is already taken), 422 (validation), 429 (too many failed logins).
+Every error answers {"error": "..."} with the matching status: 401 (missing, invalid or expired token, wrong password), 403 (not allowed to change it), 404, 409 (an ISBN or email that is already taken), 422 (validation), 429 (too many failed logins or registrations).
 POST /books answers 201 with a Location header pointing at the new book.
 
 # static analysis

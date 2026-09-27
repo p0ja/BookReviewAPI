@@ -39,7 +39,7 @@ class BookWriter
             throw new IsbnTakenException();
         }
 
-        return $this->write(function () use ($data): Book {
+        return $this->write($data->isbn, null, function () use ($data): Book {
             $book = $this->bookRepository->createBook($data);
             $this->replaceAuthors($book, $data->authors ?? []);
 
@@ -60,7 +60,7 @@ class BookWriter
             throw new IsbnTakenException();
         }
 
-        return $this->write(function () use ($book, $data): Book {
+        return $this->write($data->isbn, $book->getId(), function () use ($book, $data): Book {
             $this->bookRepository->updateBook($book, $data);
             if ($data instanceof CreateBook || null !== $data->authors) {
                 $this->replaceAuthors($book, $data->authors ?? []);
@@ -71,15 +71,22 @@ class BookWriter
     }
 
     /**
+     * @param string|null      $isbn         the ISBN being written, null when it does not change
+     * @param int|null         $exceptBookId the book being updated
      * @param callable(): Book $write
      */
-    private function write(callable $write): Book
+    private function write(?string $isbn, ?int $exceptBookId, callable $write): Book
     {
         try {
             return $this->entityManager->wrapInTransaction($write);
         } catch (UniqueConstraintViolationException $e) {
-            // Another request took the same ISBN between the check and the write.
-            throw new IsbnTakenException($e);
+            // Another request wrote at the same time. Only call it an ISBN conflict when the
+            // ISBN is now taken: the violated key may be another one (the book-author links).
+            if (null !== $isbn && $this->bookRepository->isbnExists($isbn, $exceptBookId)) {
+                throw new IsbnTakenException($e);
+            }
+
+            throw $e;
         }
     }
 
