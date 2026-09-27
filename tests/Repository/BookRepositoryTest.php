@@ -40,7 +40,8 @@ class BookRepositoryTest extends RepositoryTestCase
 
         $books = $this->service(BookRepository::class)->findBooks(2, 2, 'title');
 
-        self::assertSame(['C', 'D'], array_map(static fn ($book) => $book->getTitle(), $books));
+        self::assertSame(['C', 'D'], array_map(static fn ($book) => $book->getTitle(), $books->items));
+        self::assertSame([4, 2, 2], [$books->total, $books->page, $books->size]);
     }
 
     public function testRemoveBookReportsWhetherABookWasDeleted(): void

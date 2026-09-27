@@ -5,8 +5,9 @@ nelmio_api_doc:
             description: |
                 REST API for books and reviews.
 
-                Every endpoint except /login_check needs a JWT: call /login_check, then press
-                "Authorize" and paste the token.
+                Every endpoint except /register and /login_check needs a JWT: call /login_check,
+                then press "Authorize" and paste the token. Changing or deleting a book needs an
+                admin; a review can be changed or deleted by its author or an admin.
             version: 1.0.0
         components:
             securitySchemes:
@@ -30,18 +31,53 @@ nelmio_api_doc:
                             items:
                                 type: object
                                 properties:
-                                    id: { type: integer, description: Id of the book-author link }
+                                    id: { type: integer, description: 'Id of the author, see /authors/{id}' }
                                     name: { type: string, example: Robert C. Martin }
+                        average_rating: { type: number, format: float, nullable: true, example: 4.33, description: 'Null when the book has no reviews' }
+                        review_count: { type: integer, example: 3 }
                 Review:
                     type: object
                     properties:
                         review_id: { type: integer, example: 1 }
                         book_id: { type: integer, example: 1 }
                         book_name: { type: string, example: Clean Architecture }
+                        user_id: { type: integer, nullable: true, description: 'Who posted the review; null for older reviews. Only that user or an admin can change it' }
                         reviewer: { type: string, nullable: true }
                         content: { type: string }
                         rating: { type: integer, minimum: 0, maximum: 5 }
                         submit_date: { type: string, format: date-time }
+                Author:
+                    type: object
+                    properties:
+                        id: { type: integer, example: 1 }
+                        name: { type: string, example: Martin Fowler }
+                        info: { type: string, nullable: true }
+                Account:
+                    type: object
+                    properties:
+                        id: { type: integer, example: 3 }
+                        email: { type: string, example: reader@example.com }
+                BookPage:
+                    type: object
+                    properties:
+                        items: { type: array, items: { $ref: '#/components/schemas/Book' } }
+                        total: { type: integer, description: 'Matches over all pages', example: 42 }
+                        page: { type: integer, example: 1 }
+                        size: { type: integer, example: 20 }
+                ReviewPage:
+                    type: object
+                    properties:
+                        items: { type: array, items: { $ref: '#/components/schemas/Review' } }
+                        total: { type: integer, description: 'Matches over all pages', example: 42 }
+                        page: { type: integer, example: 1 }
+                        size: { type: integer, example: 20 }
+                AuthorPage:
+                    type: object
+                    properties:
+                        items: { type: array, items: { $ref: '#/components/schemas/Author' } }
+                        total: { type: integer, description: 'Matches over all pages', example: 42 }
+                        page: { type: integer, example: 1 }
+                        size: { type: integer, example: 20 }
                 Error:
                     type: object
                     properties:
@@ -80,6 +116,8 @@ nelmio_api_doc:
                                             token: { type: string }
                         '401':
                             description: Invalid credentials
+                        '429':
+                            description: Too many failed attempts for this email from this address; wait a minute
     areas:
         # Only the API itself: leaves out the profiler, the error pages and the doc routes.
         path_patterns:

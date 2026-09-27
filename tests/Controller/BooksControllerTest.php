@@ -30,12 +30,12 @@ class BooksControllerTest extends ApiTestCase
         $this->client->request('GET', '/books');
 
         self::assertResponseIsSuccessful();
-        $data = $this->responseData();
+        $data = $this->items();
         self::assertCount(1, $data);
         self::assertSame($book->getId(), $data[0]['id']);
         self::assertSame('Domain-Driven Design', $data[0]['title']);
         self::assertSame('9780321125215', $data[0]['isbn']);
-        self::assertSame('Eric Evans', $data[0]['authors'][0]['name']);
+        self::assertSame([['id' => $author->getId(), 'name' => 'Eric Evans']], $data[0]['authors']);
     }
 
     public function testListIsPaginated(): void
@@ -43,10 +43,78 @@ class BooksControllerTest extends ApiTestCase
         BookFakeDataFactory::createMany(5);
 
         $this->client->request('GET', '/books?page=2&size=2');
-        self::assertCount(2, $this->responseData());
+        self::assertCount(2, $this->items());
+        self::assertSame(['total' => 5, 'page' => 2, 'size' => 2], array_diff_key($this->responseData(), ['items' => true]));
 
         $this->client->request('GET', '/books?page=3&size=2');
-        self::assertCount(1, $this->responseData());
+        self::assertCount(1, $this->items());
+    }
+
+    public function testListReportsTheDefaultPageAndSize(): void
+    {
+        $this->client->request('GET', '/books');
+
+        self::assertSame(['items' => [], 'total' => 0, 'page' => 1, 'size' => 20], $this->responseData());
+    }
+
+    public function testBooksShowTheirAverageRatingAndReviewCount(): void
+    {
+        $reviewed = BookFakeDataFactory::createOne(['title' => 'A']);
+        BookFakeDataFactory::createOne(['title' => 'B']);
+        foreach ([5, 4, 4] as $rating) {
+            BookReviewFakeDataFactory::createOne(['book_id' => $reviewed, 'rating' => $rating]);
+        }
+
+        $this->client->request('GET', '/books?orderBy=title');
+
+        self::assertSame([4.33, null], array_column($this->items(), 'average_rating'));
+        self::assertSame([3, 0], array_column($this->items(), 'review_count'));
+
+        $this->client->request('GET', '/books/'.$reviewed->getId());
+        self::assertSame(4.33, $this->responseData()['average_rating']);
+        self::assertSame(3, $this->responseData()['review_count']);
+    }
+
+    /**
+     * @return iterable<string, array{string, list<string>}>
+     */
+    public static function filters(): iterable
+    {
+        yield 'part of the title, any case' => ['title=DOMAIN', ['Domain-Driven Design']];
+        yield 'title wildcards are literal' => ['title=%25', []];
+        yield 'whole genre, any case' => ['genre=software', ['Domain-Driven Design', 'Refactoring']];
+        yield 'part of the genre does not match' => ['genre=soft', []];
+        yield 'part of an author name' => ['author=fowl', ['Refactoring']];
+        yield 'minimum average rating' => ['minRating=4.5', ['Refactoring']];
+        yield 'minimum average rating, whole number' => ['minRating=4', ['Domain-Driven Design', 'Refactoring']];
+        yield 'minimum above the scale' => ['minRating=5.5', []];
+        yield 'filters combine' => ['genre=Software&author=e', ['Domain-Driven Design', 'Refactoring']];
+        yield 'filters combine to nothing' => ['genre=Fantasy&minRating=1', []];
+    }
+
+    #[DataProvider('filters')]
+    public function testListCanBeFiltered(string $query, array $titles): void
+    {
+        $ddd = BookFakeDataFactory::createOne(['title' => 'Domain-Driven Design', 'genre' => 'Software']);
+        $refactoring = BookFakeDataFactory::createOne(['title' => 'Refactoring', 'genre' => 'Software']);
+        BookFakeDataFactory::createOne(['title' => 'The Hobbit', 'genre' => 'Fantasy']);
+        BookAuthorFakeDataFactory::createOne(['book_id' => $ddd, 'author_id' => AuthorFakeDataFactory::createOne(['name' => 'Eric Evans'])]);
+        BookAuthorFakeDataFactory::createOne(['book_id' => $refactoring, 'author_id' => AuthorFakeDataFactory::createOne(['name' => 'Martin Fowler'])]);
+        BookReviewFakeDataFactory::createOne(['book_id' => $ddd, 'rating' => 4]);
+        BookReviewFakeDataFactory::createOne(['book_id' => $refactoring, 'rating' => 5]);
+
+        $this->client->request('GET', '/books?orderBy=title&'.$query);
+
+        self::assertResponseIsSuccessful();
+        self::assertSame($titles, array_column($this->items(), 'title'));
+        self::assertSame(count($titles), $this->responseData()['total']);
+    }
+
+    public function testMalformedMinRatingIsBadRequest(): void
+    {
+        $this->client->request('GET', '/books?minRating=high');
+
+        self::assertResponseStatusCodeSame(Response::HTTP_BAD_REQUEST);
     }
 
     public function testListCanBeSortedByAnAllowedColumn(): void
@@ -59,7 +127,7 @@ class BooksControllerTest extends ApiTestCase
 
         self::assertSame(
             ['Clean Code', 'Patterns of Enterprise Application Architecture', 'Refactoring'],
-            array_column($this->responseData(), 'title'),
+            array_column($this->items(), 'title'),
         );
     }
 
@@ -70,7 +138,7 @@ class BooksControllerTest extends ApiTestCase
         $this->client->request('GET', '/books?orderBy=id;DROP TABLE book');
 
         self::assertResponseIsSuccessful();
-        self::assertCount(2, $this->responseData());
+        self::assertCount(2, $this->items());
     }
 
     public function testMalformedPaginationIsBadRequest(): void
@@ -270,8 +338,149 @@ class BooksControllerTest extends ApiTestCase
         self::assertResponseStatusCodeSame(Response::HTTP_NOT_FOUND);
     }
 
+    public function testReplaceSetsEveryFieldAndTheAuthors(): void
+    {
+        $this->authenticate(['ROLE_ADMIN']);
+        $book = BookFakeDataFactory::createOne(['isbn' => '9780134494166']);
+        $kept = AuthorFakeDataFactory::createOne(['name' => 'Robert C. Martin']);
+        BookAuthorFakeDataFactory::createOne(['book_id' => $book, 'author_id' => $kept]);
+        BookAuthorFakeDataFactory::createOne(['book_id' => $book, 'author_id' => AuthorFakeDataFactory::createOne(['name' => 'Dropped'])]);
+
+        $this->requestJson('PUT', '/books/'.$book->getId(), $this->bookPayload([
+            'title' => 'Clean Architecture, 2nd ed.',
+            'authors' => [['name' => 'Robert C. Martin', 'info' => null], ['name' => 'New Author', 'info' => null]],
+        ]));
+
+        self::assertResponseIsSuccessful();
+        $data = $this->responseData();
+        self::assertSame($book->getId(), $data['id']);
+        self::assertSame('Clean Architecture, 2nd ed.', $data['title']);
+        self::assertSame(29.99, $data['price']);
+        self::assertSame(['Robert C. Martin', 'New Author'], array_column($data['authors'], 'name'));
+        self::assertSame($kept->getId(), $data['authors'][0]['id']);
+        BookAuthorFakeDataFactory::assert()->count(2);
+        AuthorFakeDataFactory::assert()->exists(['name' => 'Dropped']);
+    }
+
+    public function testReplaceWithoutAuthorsRemovesThem(): void
+    {
+        $this->authenticate(['ROLE_ADMIN']);
+        $book = BookFakeDataFactory::createOne();
+        BookAuthorFakeDataFactory::createOne(['book_id' => $book, 'author_id' => AuthorFakeDataFactory::createOne()]);
+        $payload = $this->bookPayload();
+        unset($payload['authors']);
+
+        $this->requestJson('PUT', '/books/'.$book->getId(), $payload);
+
+        self::assertResponseIsSuccessful();
+        self::assertSame([], $this->responseData()['authors']);
+        BookAuthorFakeDataFactory::assert()->empty();
+    }
+
+    public function testReplaceMayKeepTheBooksOwnIsbn(): void
+    {
+        $this->authenticate(['ROLE_ADMIN']);
+        $book = BookFakeDataFactory::createOne(['isbn' => '9780134494166']);
+
+        $this->requestJson('PUT', '/books/'.$book->getId(), $this->bookPayload());
+
+        self::assertResponseIsSuccessful();
+    }
+
+    public function testReplaceWithAnotherBooksIsbnIsAConflict(): void
+    {
+        $this->authenticate(['ROLE_ADMIN']);
+        BookFakeDataFactory::createOne(['isbn' => '9780134494166']);
+        $book = BookFakeDataFactory::createOne(['isbn' => '9780321125215', 'title' => 'Domain-Driven Design']);
+
+        $this->requestJson('PUT', '/books/'.$book->getId(), $this->bookPayload());
+
+        self::assertResponseStatusCodeSame(Response::HTTP_CONFLICT);
+        BookFakeDataFactory::assert()->exists(['isbn' => '9780321125215', 'title' => 'Domain-Driven Design']);
+    }
+
+    public function testReplaceRejectsAnIncompletePayload(): void
+    {
+        $this->authenticate(['ROLE_ADMIN']);
+        $book = BookFakeDataFactory::createOne();
+
+        $this->requestJson('PUT', '/books/'.$book->getId(), ['title' => 'Only a title']);
+
+        self::assertResponseStatusCodeSame(Response::HTTP_UNPROCESSABLE_ENTITY);
+    }
+
+    public function testPatchChangesOnlyTheGivenFields(): void
+    {
+        $this->authenticate(['ROLE_ADMIN']);
+        $book = BookFakeDataFactory::createOne(['title' => 'Old title', 'genre' => 'Software', 'price' => 10.0]);
+        BookAuthorFakeDataFactory::createOne(['book_id' => $book, 'author_id' => AuthorFakeDataFactory::createOne(['name' => 'Kept'])]);
+
+        $this->requestJson('PATCH', '/books/'.$book->getId(), ['price' => '12.50']);
+
+        self::assertResponseIsSuccessful();
+        $data = $this->responseData();
+        self::assertSame(12.5, $data['price']);
+        self::assertSame('Old title', $data['title']);
+        self::assertSame('Software', $data['genre']);
+        self::assertSame(['Kept'], array_column($data['authors'], 'name'));
+    }
+
+    public function testPatchWithAuthorsReplacesThem(): void
+    {
+        $this->authenticate(['ROLE_ADMIN']);
+        $book = BookFakeDataFactory::createOne();
+        BookAuthorFakeDataFactory::createOne(['book_id' => $book, 'author_id' => AuthorFakeDataFactory::createOne(['name' => 'Old'])]);
+
+        $this->requestJson('PATCH', '/books/'.$book->getId(), ['authors' => [['name' => 'New', 'info' => null]]]);
+
+        self::assertSame(['New'], array_column($this->responseData()['authors'], 'name'));
+    }
+
+    public function testPatchRejectsAnInvalidField(): void
+    {
+        $this->authenticate(['ROLE_ADMIN']);
+        $book = BookFakeDataFactory::createOne(['title' => 'Old title']);
+
+        $this->requestJson('PATCH', '/books/'.$book->getId(), ['price' => 'free', 'title' => '']);
+
+        self::assertResponseStatusCodeSame(Response::HTTP_UNPROCESSABLE_ENTITY);
+        BookFakeDataFactory::assert()->exists(['title' => 'Old title']);
+    }
+
+    public function testUpdateOfAnUnknownBookIsNotFound(): void
+    {
+        $this->authenticate(['ROLE_ADMIN']);
+
+        $this->requestJson('PATCH', '/books/999999', ['title' => 'Anything']);
+
+        self::assertResponseStatusCodeSame(Response::HTTP_NOT_FOUND);
+    }
+
+    /**
+     * @return iterable<string, array{string}>
+     */
+    public static function adminOnlyMethods(): iterable
+    {
+        yield 'replace' => ['PUT'];
+        yield 'patch' => ['PATCH'];
+        yield 'delete' => ['DELETE'];
+    }
+
+    #[DataProvider('adminOnlyMethods')]
+    public function testChangingABookRequiresAnAdmin(string $method): void
+    {
+        $book = BookFakeDataFactory::createOne(['title' => 'Untouched']);
+
+        $this->requestJson($method, '/books/'.$book->getId(), $this->bookPayload());
+
+        self::assertResponseStatusCodeSame(Response::HTTP_FORBIDDEN);
+        self::assertSame(['error' => 'Forbidden'], $this->responseData());
+        BookFakeDataFactory::assert()->exists(['title' => 'Untouched']);
+    }
+
     public function testDeleteRemovesTheBookAndItsReviews(): void
     {
+        $this->authenticate(['ROLE_ADMIN']);
         $book = BookFakeDataFactory::createOne();
         BookReviewFakeDataFactory::createOne(['book_id' => $book]);
         $id = $book->getId();
@@ -286,6 +495,7 @@ class BooksControllerTest extends ApiTestCase
 
     public function testDeleteRemovesTheAuthorLinksButKeepsTheAuthors(): void
     {
+        $this->authenticate(['ROLE_ADMIN']);
         $book = BookFakeDataFactory::createOne();
         $otherBook = BookFakeDataFactory::createOne();
         $author = AuthorFakeDataFactory::createOne();
@@ -305,6 +515,7 @@ class BooksControllerTest extends ApiTestCase
 
     public function testDeleteUnknownBookIsNotFound(): void
     {
+        $this->authenticate(['ROLE_ADMIN']);
         $this->client->request('DELETE', '/books/999999');
 
         self::assertResponseStatusCodeSame(Response::HTTP_NOT_FOUND);

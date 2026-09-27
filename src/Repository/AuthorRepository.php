@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Repository;
 
+use App\Config\ConfigData;
 use App\Dto\CreateAuthor;
 use App\Entity\Author;
 use App\Logger\LoggerInterface;
@@ -17,6 +18,8 @@ use Psr\Log\LogLevel;
  */
 class AuthorRepository extends ServiceEntityRepository
 {
+    use PaginatesResults;
+
     public function __construct(
         protected ManagerRegistry $registry,
         private readonly LoggerInterface $logger,
@@ -54,6 +57,27 @@ class AuthorRepository extends ServiceEntityRepository
         }
 
         return $author;
+    }
+
+    /**
+     * @param string|null $name part of the name, case-insensitive
+     *
+     * @return Page<Author>
+     */
+    public function findAuthors(?int $page, ?int $size, ?string $orderBy, ?string $name = null): Page
+    {
+        $qb = $this->createQueryBuilder('a');
+        if (null !== $name && '' !== trim($name)) {
+            $qb->andWhere("LOWER(a.name) LIKE :name ESCAPE '\\'")
+                ->setParameter('name', self::containsPattern($name));
+        }
+        if (in_array($orderBy, ConfigData::AUTHOR_SORTING_COLUMNS, true)) {
+            $qb->orderBy('a.'.$orderBy, 'ASC');
+        }
+        // A stable order, or rows could move between pages.
+        $qb->addOrderBy('a.id', 'ASC');
+
+        return $this->paginate($qb, $page, $size);
     }
 
     private function authorExists(string $name): bool

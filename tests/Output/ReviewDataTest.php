@@ -26,6 +26,7 @@ class ReviewDataTest extends TestCase
             'review_id' => 9,
             'book_id' => 3,
             'book_name' => 'Refactoring',
+            'user_id' => null,
             'reviewer' => 'Jane',
             'content' => 'Worth reading twice.',
             'rating' => 4,
@@ -39,5 +40,6 @@ class ReviewDataTest extends TestCase
 
         self::assertNull($output['book_id']);
         self::assertNull($output['book_name']);
+        self::assertNull($output['user_id']);
     }
 }
