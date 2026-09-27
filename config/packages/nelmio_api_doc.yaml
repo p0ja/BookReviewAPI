@@ -1,0 +1,86 @@
+nelmio_api_doc:
+    documentation:
+        info:
+            title: Book Review API
+            description: |
+                REST API for books and reviews.
+
+                Every endpoint except /login_check needs a JWT: call /login_check, then press
+                "Authorize" and paste the token.
+            version: 1.0.0
+        components:
+            securitySchemes:
+                Bearer:
+                    type: http
+                    scheme: bearer
+                    bearerFormat: JWT
+            schemas:
+                Book:
+                    type: object
+                    properties:
+                        id: { type: integer, example: 1 }
+                        title: { type: string, example: Clean Architecture }
+                        isbn: { type: string, example: '9780134494166' }
+                        price: { type: number, format: float, example: 29.99 }
+                        description: { type: string, nullable: true }
+                        genre: { type: string, example: Software }
+                        publish_date: { type: string, example: '2017-09-10' }
+                        authors:
+                            type: array
+                            items:
+                                type: object
+                                properties:
+                                    id: { type: integer, description: Id of the book-author link }
+                                    name: { type: string, example: Robert C. Martin }
+                Review:
+                    type: object
+                    properties:
+                        review_id: { type: integer, example: 1 }
+                        book_id: { type: integer, example: 1 }
+                        book_name: { type: string, example: Clean Architecture }
+                        reviewer: { type: string, nullable: true }
+                        content: { type: string }
+                        rating: { type: integer, minimum: 0, maximum: 5 }
+                        submit_date: { type: string, format: date-time }
+                Error:
+                    type: object
+                    properties:
+                        error: { type: string, example: Resource with such id does not exists }
+                DeleteResult:
+                    type: object
+                    properties:
+                        result: { type: boolean, example: true }
+        security:
+            - Bearer: []
+        paths:
+            # json_login handles this route, there is no controller to describe it.
+            /login_check:
+                post:
+                    tags: [Authentication]
+                    summary: Get a JWT for an email and password
+                    security: []
+                    requestBody:
+                        required: true
+                        content:
+                            application/json:
+                                schema:
+                                    type: object
+                                    required: [username, password]
+                                    properties:
+                                        username: { type: string, example: user@example.com }
+                                        password: { type: string, example: user }
+                    responses:
+                        '200':
+                            description: The token, valid for one hour
+                            content:
+                                application/json:
+                                    schema:
+                                        type: object
+                                        properties:
+                                            token: { type: string }
+                        '401':
+                            description: Invalid credentials
+    areas:
+        # Only the API itself: leaves out the profiler, the error pages and the doc routes.
+        path_patterns:
+            - ^/(?!_|api/doc)

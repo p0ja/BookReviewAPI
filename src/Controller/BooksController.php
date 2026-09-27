@@ -13,12 +13,14 @@ use App\Repository\BookAuthorRepository;
 use App\Repository\BookRepository;
 use App\Repository\ReviewRepository;
 use Doctrine\ORM\EntityManagerInterface;
+use OpenApi\Attributes as OA;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Attribute\MapQueryParameter;
 use Symfony\Component\HttpKernel\Attribute\MapRequestPayload;
 use Symfony\Component\Routing\Attribute\Route;
 
+#[OA\Tag(name: 'Books')]
 final class BooksController extends AbstractController
 {
     public function __construct(
@@ -33,6 +35,13 @@ final class BooksController extends AbstractController
     ) {
     }
 
+    #[OA\Get(summary: 'List books', description: 'Paginated with page and size (default 20, at most 100); orderBy names a column to sort by (an unknown one is ignored).')]
+    #[OA\Response(
+        response: 200,
+        description: 'Books',
+        content: new OA\JsonContent(type: 'array', items: new OA\Items(ref: '#/components/schemas/Book')),
+    )]
+    #[OA\Response(response: 400, description: 'Malformed page or size', content: new OA\JsonContent(ref: '#/components/schemas/Error'))]
     #[Route('/books', name: 'rest_books', methods: ['GET'])]
     public function list(
         #[MapQueryParameter(validationFailedStatusCode: Response::HTTP_BAD_REQUEST)] ?int $page = null,
@@ -49,6 +58,13 @@ final class BooksController extends AbstractController
         return $this->json($booksData, Response::HTTP_OK);
     }
 
+    #[OA\Get(summary: 'Get a book')]
+    #[OA\Response(
+        response: 200,
+        description: 'The book',
+        content: new OA\JsonContent(ref: '#/components/schemas/Book'),
+    )]
+    #[OA\Response(response: 404, description: 'No book with this id', content: new OA\JsonContent(ref: '#/components/schemas/Error'))]
     #[Route('/books/{id}', name: 'rest_book', requirements: ['id' => '\d+'], methods: ['GET'])]
     public function get(int $id): Response
     {
@@ -70,6 +86,13 @@ final class BooksController extends AbstractController
         return $this->json($booksData, Response::HTTP_OK);
     }
 
+    #[OA\Post(summary: 'Create a book with its authors', description: 'A book with an existing ISBN is updated instead. Authors are matched by name and created when missing.')]
+    #[OA\Response(
+        response: 200,
+        description: 'The created or updated book',
+        content: new OA\JsonContent(ref: '#/components/schemas/Book'),
+    )]
+    #[OA\Response(response: 422, description: 'Invalid payload', content: new OA\JsonContent(ref: '#/components/schemas/Error'))]
     #[Route('/books', name: 'book_create', methods: ['POST'])]
     public function create(#[MapRequestPayload] CreateBook $bookPost): Response
     {
@@ -92,6 +115,12 @@ final class BooksController extends AbstractController
         return $this->json($booksData, Response::HTTP_OK);
     }
 
+    #[OA\Get(summary: 'List the reviews of a book', description: 'An unknown book gives an empty list.')]
+    #[OA\Response(
+        response: 200,
+        description: 'Reviews',
+        content: new OA\JsonContent(type: 'array', items: new OA\Items(ref: '#/components/schemas/Review')),
+    )]
     #[Route('/books/{id}/reviews', name: 'rest_book_reviews', requirements: ['id' => '\d+'], methods: ['GET'])]
     public function getReviews(int $id): Response
     {
@@ -116,6 +145,14 @@ final class BooksController extends AbstractController
         return $this->json($reviewsData, Response::HTTP_OK);
     }
 
+    #[OA\Post(summary: 'Add a review to a book')]
+    #[OA\Response(
+        response: 201,
+        description: 'The created review',
+        content: new OA\JsonContent(ref: '#/components/schemas/Review'),
+    )]
+    #[OA\Response(response: 404, description: 'No book with this id', content: new OA\JsonContent(ref: '#/components/schemas/Error'))]
+    #[OA\Response(response: 422, description: 'Invalid payload', content: new OA\JsonContent(ref: '#/components/schemas/Error'))]
     #[Route('/books/{id}/reviews', name: 'review_create', requirements: ['id' => '\d+'], methods: ['POST'])]
     public function createReview(int $id, #[MapRequestPayload] CreateReview $reviewPost): Response
     {
@@ -129,6 +166,13 @@ final class BooksController extends AbstractController
         return $this->json($reviewData, Response::HTTP_CREATED);
     }
 
+    #[OA\Delete(summary: 'Delete a book and its reviews', description: 'Its authors are kept.')]
+    #[OA\Response(
+        response: 200,
+        description: 'Deleted',
+        content: new OA\JsonContent(ref: '#/components/schemas/DeleteResult'),
+    )]
+    #[OA\Response(response: 404, description: 'No book with this id', content: new OA\JsonContent(ref: '#/components/schemas/Error'))]
     #[Route('/book/delete/{id}', name: 'rest_book_delete', requirements: ['id' => '\d+'], methods: ['DELETE'])]
     public function deleteBook(int $id): Response
     {
