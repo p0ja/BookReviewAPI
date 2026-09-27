@@ -38,13 +38,12 @@ class Logger implements LoggerInterface
     public function log(string $namespace, string $message, array $context = [], mixed $level = null): void
     {
         $this->logger->log(
-            LogLevel::INFO,
+            is_string($level) && in_array(strtolower($level), self::LOG_LEVELS, true) ? strtolower($level) : LogLevel::INFO,
             $message,
             array_merge(
                 $context,
                 [
                     'namespace' => $namespace,
-                    'level' => $level,
                 ]
             )
         );
@@ -58,8 +57,8 @@ class Logger implements LoggerInterface
             throw new \BadMethodCallException("Method $name() does not exist");
         }
 
-        [$namespace, $message, $context] = $arguments;
-        $context = $context ?? [];
+        [$namespace, $message] = $arguments;
+        $context = $arguments[2] ?? [];
 
         $this->logger->log(
             in_array($name, self::LOG_LEVELS, true) ? $name : LogLevel::INFO,

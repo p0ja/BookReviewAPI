@@ -30,7 +30,9 @@ class CreateBook
         #[Assert\Type('string')]
         #[Assert\Length(max: 25)]
         public readonly string $publish_date,
+        /** @var list<CreateAuthor>|null */
         #[Assert\Type('array')]
+        #[Assert\Valid]
         public ?array $authors = null,
     ) {
     }

@@ -8,7 +8,9 @@ use App\Factory\AuthorFakeDataFactory;
 use App\Factory\BookAuthorFakeDataFactory;
 use App\Factory\BookFakeDataFactory;
 use App\Factory\BookReviewFakeDataFactory;
+use App\Repository\BookAuthorRepository;
 use App\Tests\ApiTestCase;
+use PHPUnit\Framework\Attributes\DataProvider;
 use Symfony\Component\HttpFoundation\Response;
 
 class BooksControllerTest extends ApiTestCase
@@ -134,6 +136,55 @@ class BooksControllerTest extends ApiTestCase
         self::assertResponseStatusCodeSame(Response::HTTP_UNPROCESSABLE_ENTITY);
         self::assertStringContainsString('isbn', $this->responseData()['error']);
         BookFakeDataFactory::assert()->empty();
+    }
+
+    public function testCreateWithoutAuthorsStoresTheBook(): void
+    {
+        $payload = $this->bookPayload();
+        unset($payload['authors']);
+
+        $this->requestJson('POST', '/books', $payload);
+
+        self::assertResponseIsSuccessful();
+        self::assertSame([], $this->responseData()['authors']);
+        BookFakeDataFactory::assert()->count(1);
+    }
+
+    /**
+     * @return iterable<string, array{mixed}>
+     */
+    public static function invalidAuthors(): iterable
+    {
+        yield 'author without a name' => [['info' => 'No name']];
+        yield 'author with a blank name' => [['name' => '', 'info' => null]];
+        yield 'author that is a string' => ['Robert C. Martin'];
+        yield 'author that is a number' => [42];
+    }
+
+    #[DataProvider('invalidAuthors')]
+    public function testCreateRejectsAnInvalidAuthor(mixed $author): void
+    {
+        $this->requestJson('POST', '/books', $this->bookPayload([
+            'authors' => [['name' => 'Robert C. Martin', 'info' => null], $author],
+        ]));
+
+        self::assertResponseStatusCodeSame(Response::HTTP_UNPROCESSABLE_ENTITY);
+        self::assertStringContainsString('authors', $this->responseData()['error']);
+        BookFakeDataFactory::assert()->empty();
+        AuthorFakeDataFactory::assert()->empty();
+    }
+
+    public function testCreateFailingPartWayStoresNothing(): void
+    {
+        $bookAuthorRepository = $this->createMock(BookAuthorRepository::class);
+        $bookAuthorRepository->method('createBookAuthor')->willThrowException(new \RuntimeException('Database failure'));
+        static::getContainer()->set(BookAuthorRepository::class, $bookAuthorRepository);
+
+        $this->requestJson('POST', '/books', $this->bookPayload());
+
+        self::assertResponseStatusCodeSame(Response::HTTP_INTERNAL_SERVER_ERROR);
+        BookFakeDataFactory::assert()->empty();
+        AuthorFakeDataFactory::assert()->empty();
     }
 
     public function testCreateRejectsANonNumericPrice(): void

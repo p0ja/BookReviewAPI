@@ -22,13 +22,36 @@ class LoggerTest extends TestCase
         $this->logger = new Logger(new MonologLogger('test', [$this->handler]));
     }
 
-    public function testLogAddsTheNamespaceAndLevelToTheContext(): void
+    public function testLogUsesTheRequestedLevelAndAddsTheNamespaceToTheContext(): void
     {
         $this->logger->log('book_restApi', 'Book not found', ['id' => 7], LogLevel::ERROR);
 
         $record = $this->handler->getRecords()[0];
+        self::assertSame(Level::Error, $record->level);
         self::assertSame('Book not found', $record->message);
-        self::assertSame(['id' => 7, 'namespace' => 'book_restApi', 'level' => LogLevel::ERROR], $record->context);
+        self::assertSame(['id' => 7, 'namespace' => 'book_restApi'], $record->context);
+    }
+
+    public function testLogWithoutALevelLogsAtInfo(): void
+    {
+        $this->logger->log('book_restApi', 'Book not found');
+
+        self::assertSame(Level::Info, $this->handler->getRecords()[0]->level);
+    }
+
+    public function testLogWithAnUnknownLevelLogsAtInfo(): void
+    {
+        $this->logger->log('book_restApi', 'Book not found', [], 'loud');
+
+        self::assertSame(Level::Info, $this->handler->getRecords()[0]->level);
+    }
+
+    public function testLevelMethodsDoNotRequireAContext(): void
+    {
+        $this->logger->error('book_restApi', 'Broken');
+
+        self::assertTrue($this->handler->hasErrorThatContains('Broken'));
+        self::assertSame(['namespace' => 'book_restApi'], $this->handler->getRecords()[0]->context);
     }
 
     public function testLevelMethodsLogAtThatLevel(): void
