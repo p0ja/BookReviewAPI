@@ -1,0 +1,10 @@
+framework:
+    rate_limiter:
+        # POST /register, per client IP address (RegistrationController).
+        register:
+            policy: sliding_window
+            limit: 10
+            interval: '1 hour'
+            # No symfony/lock: simultaneous requests may slip one or two past the limit,
+            # which is fine for slowing down sign-ups.
+            lock_factory: null
