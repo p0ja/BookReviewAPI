@@ -49,7 +49,7 @@ final class ReviewController extends AbstractController
         content: new OA\JsonContent(ref: '#/components/schemas/DeleteResult'),
     )]
     #[OA\Response(response: 404, description: 'No review with this id', content: new OA\JsonContent(ref: '#/components/schemas/Error'))]
-    #[Route('/review/delete/{id}', name: 'rest_review_delete', requirements: ['id' => '\d+'], methods: ['DELETE'])]
+    #[Route('/reviews/{id}', name: 'rest_review_delete', requirements: ['id' => '\d+'], methods: ['DELETE'])]
     public function delete(int $id): Response
     {
         $result = $this->reviewRepository->removeReview($id);

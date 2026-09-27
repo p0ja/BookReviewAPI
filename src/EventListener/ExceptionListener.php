@@ -38,11 +38,13 @@ class ExceptionListener
             $statusCode = $exception->getStatusCode();
 
             // Never expose an internal exception message: for anything other than a
-            // validation failure the client only gets the standard reason phrase.
+            // validation failure or a conflict the client only gets the standard reason phrase.
             $message = match ($statusCode) {
                 Response::HTTP_NOT_FOUND => self::RESOURCE_NOT_FOUND_MSG,
                 Response::HTTP_UNPROCESSABLE_ENTITY => $exception->getPrevious()?->getMessage()
                     ?? self::statusText($statusCode),
+                // Conflicts are raised by the controllers with a message meant for the client.
+                Response::HTTP_CONFLICT => $exception->getMessage(),
                 default => self::statusText($statusCode),
             };
 

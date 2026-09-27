@@ -105,9 +105,10 @@ class BooksControllerTest extends ApiTestCase
     {
         $this->requestJson('POST', '/books', $this->bookPayload());
 
-        self::assertResponseIsSuccessful();
+        self::assertResponseStatusCodeSame(Response::HTTP_CREATED);
         $data = $this->responseData();
         self::assertIsInt($data['id']);
+        self::assertResponseHeaderSame('Location', 'http://localhost/books/'.$data['id']);
         self::assertSame('Clean Architecture', $data['title']);
         self::assertSame(29.99, $data['price']);
         self::assertSame(['Robert C. Martin', 'Second Author'], array_column($data['authors'], 'name'));
@@ -117,16 +118,17 @@ class BooksControllerTest extends ApiTestCase
         BookAuthorFakeDataFactory::assert()->count(2);
     }
 
-    public function testCreateWithAnExistingIsbnUpdatesThatBook(): void
+    public function testCreateWithAnExistingIsbnIsAConflict(): void
     {
-        $book = BookFakeDataFactory::createOne(['isbn' => '9780134494166', 'title' => 'Old title']);
+        BookFakeDataFactory::createOne(['isbn' => '9780134494166', 'title' => 'Old title']);
 
-        $this->requestJson('POST', '/books', $this->bookPayload(['authors' => []]));
+        $this->requestJson('POST', '/books', $this->bookPayload());
 
-        self::assertResponseIsSuccessful();
-        self::assertSame($book->getId(), $this->responseData()['id']);
+        self::assertResponseStatusCodeSame(Response::HTTP_CONFLICT);
+        self::assertSame(['error' => 'A book with this ISBN already exists'], $this->responseData());
         BookFakeDataFactory::assert()->count(1);
-        BookFakeDataFactory::assert()->exists(['isbn' => '9780134494166', 'title' => 'Clean Architecture']);
+        BookFakeDataFactory::assert()->exists(['isbn' => '9780134494166', 'title' => 'Old title']);
+        AuthorFakeDataFactory::assert()->empty();
     }
 
     public function testCreateRejectsAnInvalidPayload(): void
@@ -274,7 +276,7 @@ class BooksControllerTest extends ApiTestCase
         BookReviewFakeDataFactory::createOne(['book_id' => $book]);
         $id = $book->getId();
 
-        $this->client->request('DELETE', '/book/delete/'.$id);
+        $this->client->request('DELETE', '/books/'.$id);
 
         self::assertResponseIsSuccessful();
         self::assertSame(['result' => true], $this->responseData());
@@ -290,7 +292,7 @@ class BooksControllerTest extends ApiTestCase
         BookAuthorFakeDataFactory::createOne(['book_id' => $book, 'author_id' => $author]);
         BookAuthorFakeDataFactory::createOne(['book_id' => $otherBook, 'author_id' => $author]);
 
-        $this->client->request('DELETE', '/book/delete/'.$book->getId());
+        $this->client->request('DELETE', '/books/'.$book->getId());
 
         self::assertResponseIsSuccessful();
         BookFakeDataFactory::assert()->count(1);
@@ -303,7 +305,7 @@ class BooksControllerTest extends ApiTestCase
 
     public function testDeleteUnknownBookIsNotFound(): void
     {
-        $this->client->request('DELETE', '/book/delete/999999');
+        $this->client->request('DELETE', '/books/999999');
 
         self::assertResponseStatusCodeSame(Response::HTTP_NOT_FOUND);
     }

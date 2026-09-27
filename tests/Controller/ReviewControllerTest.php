@@ -69,7 +69,7 @@ class ReviewControllerTest extends ApiTestCase
     {
         $review = BookReviewFakeDataFactory::createOne(['book_id' => BookFakeDataFactory::createOne()]);
 
-        $this->client->request('DELETE', '/review/delete/'.$review->getId());
+        $this->client->request('DELETE', '/reviews/'.$review->getId());
 
         self::assertResponseIsSuccessful();
         self::assertSame(['result' => true], $this->responseData());
@@ -79,7 +79,7 @@ class ReviewControllerTest extends ApiTestCase
 
     public function testDeleteUnknownReviewIsNotFound(): void
     {
-        $this->client->request('DELETE', '/review/delete/999999');
+        $this->client->request('DELETE', '/reviews/999999');
 
         self::assertResponseStatusCodeSame(Response::HTTP_NOT_FOUND);
     }

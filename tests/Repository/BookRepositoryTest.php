@@ -23,15 +23,13 @@ class BookRepositoryTest extends RepositoryTestCase
         self::assertSame(29.99, $book->getPrice());
     }
 
-    public function testCreateBookWithAKnownIsbnUpdatesTheExistingBook(): void
+    public function testIsbnExistsIgnoresSurroundingWhitespace(): void
     {
-        $existing = BookFakeDataFactory::createOne(['isbn' => '9780134494166', 'title' => 'Old title']);
+        BookFakeDataFactory::createOne(['isbn' => '9780134494166']);
+        $repository = $this->service(BookRepository::class);
 
-        $book = $this->service(BookRepository::class)->createBook($this->createBook(isbn: ' 9780134494166'));
-
-        self::assertSame($existing->getId(), $book->getId());
-        BookFakeDataFactory::assert()->count(1);
-        BookFakeDataFactory::assert()->exists(['title' => 'Clean Architecture']);
+        self::assertTrue($repository->isbnExists(' 9780134494166 '));
+        self::assertFalse($repository->isbnExists('9780321125215'));
     }
 
     public function testFindBooksAppliesPaginationAndSorting(): void

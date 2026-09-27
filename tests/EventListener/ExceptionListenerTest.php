@@ -13,6 +13,7 @@ use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Event\ExceptionEvent;
+use Symfony\Component\HttpKernel\Exception\ConflictHttpException;
 use Symfony\Component\HttpKernel\Exception\MethodNotAllowedHttpException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Symfony\Component\HttpKernel\Exception\UnauthorizedHttpException;
@@ -44,6 +45,14 @@ class ExceptionListenerTest extends TestCase
         $response = $this->handle(new UnprocessableEntityHttpException('internal detail'));
 
         self::assertSame(['error' => 'Unprocessable Content'], $this->decode($response));
+    }
+
+    public function testConflictExposesItsMessage(): void
+    {
+        $response = $this->handle(new ConflictHttpException('A book with this ISBN already exists'));
+
+        self::assertSame(Response::HTTP_CONFLICT, $response->getStatusCode());
+        self::assertSame(['error' => 'A book with this ISBN already exists'], $this->decode($response));
     }
 
     public function testOtherHttpErrorsKeepTheirStatusAndHeadersButNotTheirMessage(): void
