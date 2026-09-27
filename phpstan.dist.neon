@@ -1,0 +1,22 @@
+includes:
+    - vendor/phpstan/phpstan-symfony/extension.neon
+    - vendor/phpstan/phpstan-symfony/rules.neon
+    - vendor/phpstan/phpstan-doctrine/extension.neon
+    - vendor/phpstan/phpstan-doctrine/rules.neon
+    - vendor/phpstan/phpstan-phpunit/extension.neon
+    - vendor/phpstan/phpstan-phpunit/rules.neon
+
+parameters:
+    level: 6
+    paths:
+        - src
+        - tests
+    excludePaths:
+        - tests/bootstrap.php
+    doctrine:
+        # Entities follow the maker pattern: ?string $name = null on a required column,
+        # null only until the entity is filled in.
+        allowNullablePropertyForRequiredField: true
+    symfony:
+        # Built by bin/console cache:warmup; lets PHPStan know the service types.
+        containerXmlPath: var/cache/dev/App_KernelDevDebugContainer.xml

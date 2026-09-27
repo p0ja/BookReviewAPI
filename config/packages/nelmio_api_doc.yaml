@@ -25,7 +25,7 @@ nelmio_api_doc:
                         price: { type: number, format: float, example: 29.99 }
                         description: { type: string, nullable: true }
                         genre: { type: string, example: Software }
-                        publish_date: { type: string, example: '2017-09-10' }
+                        publish_date: { type: string, format: date, nullable: true, example: '2017-09-10' }
                         authors:
                             type: array
                             items:

@@ -69,6 +69,7 @@ class LoggerTest extends TestCase
     {
         $this->expectException(\BadMethodCallException::class);
 
-        $this->logger->shout('book_restApi', 'Hello', []);
+        // Deliberately not a log level, to check that __call() rejects it.
+        $this->logger->shout('book_restApi', 'Hello', []); // @phpstan-ignore method.notFound
     }
 }

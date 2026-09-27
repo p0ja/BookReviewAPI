@@ -81,6 +81,7 @@ final class BooksController extends AbstractController
 
             throw $this->createNotFoundException('Book not found');
         }
+        $this->bookRepository->loadAuthors([$book]);
 
         return $this->json($this->bookData->getOne($book), Response::HTTP_OK);
     }

@@ -6,5 +6,8 @@ namespace App\Logger;
 
 interface LoggerInterface
 {
+    /**
+     * @param array<string, mixed> $context
+     */
     public function log(string $namespace, string $message, array $context = [], mixed $level = null): void;
 }

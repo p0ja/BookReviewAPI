@@ -19,15 +19,19 @@ class UpdateBook
         #[Assert\NotBlank(allowNull: true)]
         #[Assert\Length(min: 10, max: 13)]
         public readonly ?string $isbn = null,
-        #[Assert\Length(max: 255)]
+        #[Assert\Length(max: 10000)]
         public readonly ?string $description = null,
-        // GreaterThan alone compares a non-numeric string as text ("abc" > "0"), so check the format first.
-        #[Assert\Regex('/^-?\d+(\.\d+)?$/', message: 'Price must be a decimal number, e.g. 29.99.')]
-        #[Assert\GreaterThan(0)]
+        // In sequence: the comparisons treat a non-numeric string as text ("abc" > "0"), so
+        // they only run once the format is right. decimal(10,2) holds at most 99999999.99.
+        #[Assert\Sequentially([
+            new Assert\Regex('/^-?\d+(\.\d+)?$/', message: 'Price must be a decimal number, e.g. 29.99.'),
+            new Assert\GreaterThan(0),
+            new Assert\LessThanOrEqual(99999999.99),
+        ])]
         public readonly ?string $price = null,
         #[Assert\Length(max: 255)]
         public readonly ?string $genre = null,
-        #[Assert\Length(max: 25)]
+        #[Assert\Date(message: 'Publish date must be a date in the form YYYY-MM-DD.')]
         public readonly ?string $publish_date = null,
         /** @var list<CreateAuthor>|null replaces all the authors when given */
         #[Assert\Valid]

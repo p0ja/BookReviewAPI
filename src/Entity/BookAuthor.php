@@ -7,6 +7,8 @@ use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Serializer\Attribute\Ignore;
 
 #[ORM\Entity(repositoryClass: BookAuthorRepository::class)]
+// A book lists an author once.
+#[ORM\UniqueConstraint(name: 'UNIQ_BOOK_AUTHOR', fields: ['book_id', 'author_id'])]
 class BookAuthor
 {
     #[ORM\Id]

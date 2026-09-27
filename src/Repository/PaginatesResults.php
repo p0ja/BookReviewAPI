@@ -35,6 +35,8 @@ trait PaginatesResults
      *
      * The list queries select a single entity without fetch-joined collections, so the
      * paginator can count and slice with plain SQL.
+     *
+     * @return Page<object> callers narrow it to their entity with a @var tag
      */
     private function paginate(QueryBuilder $qb, ?int $page, ?int $size): Page
     {

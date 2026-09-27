@@ -92,6 +92,9 @@ class BooksControllerTest extends ApiTestCase
         yield 'filters combine to nothing' => ['genre=Fantasy&minRating=1', []];
     }
 
+    /**
+     * @param list<string> $titles
+     */
     #[DataProvider('filters')]
     public function testListCanBeFiltered(string $query, array $titles): void
     {
@@ -150,7 +153,7 @@ class BooksControllerTest extends ApiTestCase
 
     public function testGetReturnsASingleBook(): void
     {
-        $book = BookFakeDataFactory::createOne(['title' => 'Refactoring', 'price' => 39.99]);
+        $book = BookFakeDataFactory::createOne(['title' => 'Refactoring', 'price' => '39.99']);
 
         $this->client->request('GET', '/books/'.$book->getId());
 
@@ -412,7 +415,7 @@ class BooksControllerTest extends ApiTestCase
     public function testPatchChangesOnlyTheGivenFields(): void
     {
         $this->authenticate(['ROLE_ADMIN']);
-        $book = BookFakeDataFactory::createOne(['title' => 'Old title', 'genre' => 'Software', 'price' => 10.0]);
+        $book = BookFakeDataFactory::createOne(['title' => 'Old title', 'genre' => 'Software', 'price' => '10.00']);
         BookAuthorFakeDataFactory::createOne(['book_id' => $book, 'author_id' => AuthorFakeDataFactory::createOne(['name' => 'Kept'])]);
 
         $this->requestJson('PATCH', '/books/'.$book->getId(), ['price' => '12.50']);
@@ -423,6 +426,28 @@ class BooksControllerTest extends ApiTestCase
         self::assertSame('Old title', $data['title']);
         self::assertSame('Software', $data['genre']);
         self::assertSame(['Kept'], array_column($data['authors'], 'name'));
+    }
+
+    public function testPatchCanClearThePublishDate(): void
+    {
+        $this->authenticate(['ROLE_ADMIN']);
+        $book = BookFakeDataFactory::createOne(['publish_date' => new \DateTimeImmutable('2001-02-03')]);
+
+        $this->client->request('GET', '/books/'.$book->getId());
+        self::assertSame('2001-02-03', $this->responseData()['publish_date']);
+
+        $this->requestJson('PATCH', '/books/'.$book->getId(), ['publish_date' => '']);
+
+        self::assertResponseIsSuccessful();
+        self::assertNull($this->responseData()['publish_date']);
+    }
+
+    public function testCreateRejectsAnImpossiblePublishDate(): void
+    {
+        $this->requestJson('POST', '/books', $this->bookPayload(['publish_date' => '2017-02-30']));
+
+        self::assertResponseStatusCodeSame(Response::HTTP_UNPROCESSABLE_ENTITY);
+        self::assertStringContainsString('YYYY-MM-DD', $this->responseData()['error']);
     }
 
     public function testPatchWithAuthorsReplacesThem(): void

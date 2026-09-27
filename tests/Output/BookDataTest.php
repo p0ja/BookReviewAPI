@@ -19,10 +19,10 @@ class BookDataTest extends TestCase
             ->setId(3)
             ->setTitle('Refactoring')
             ->setIsbn('9780134757599')
-            ->setPrice(47.5)
+            ->setPrice('47.50')
             ->setDescription('Improving the design of existing code')
             ->setGenre('Software')
-            ->setPublishDate('2018-11-20');
+            ->setPublishDate(new \DateTimeImmutable('2018-11-20'));
         $book->addBookAuthor((new BookAuthor())->setAuthor((new Author())->setId(8)->setName('Martin Fowler')));
 
         self::assertSame([

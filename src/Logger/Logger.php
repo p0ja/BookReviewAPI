@@ -8,14 +8,14 @@ use Monolog\Logger as MonologLogger;
 use Psr\Log\LogLevel;
 
 /**
- * @method emergency(string $namespace, string $message, array $context = []): void
- * @method alert(string $namespace, string $message, array $context = []): void
- * @method critical(string $namespace, string $message, array $context = []): void
- * @method error(string $namespace, string $message, array $context = []): void
- * @method warning(string $namespace, string $message, array $context = []): void
- * @method notice(string $namespace, string $message, array $context = []): void
- * @method info(string $namespace, string $message, array $context = []): void
- * @method debug(string $namespace, string $message, array $context = []): void
+ * @method void emergency(string $namespace, string $message, array<string, mixed> $context = [])
+ * @method void alert(string $namespace, string $message, array<string, mixed> $context = [])
+ * @method void critical(string $namespace, string $message, array<string, mixed> $context = [])
+ * @method void error(string $namespace, string $message, array<string, mixed> $context = [])
+ * @method void warning(string $namespace, string $message, array<string, mixed> $context = [])
+ * @method void notice(string $namespace, string $message, array<string, mixed> $context = [])
+ * @method void info(string $namespace, string $message, array<string, mixed> $context = [])
+ * @method void debug(string $namespace, string $message, array<string, mixed> $context = [])
  */
 class Logger implements LoggerInterface
 {
@@ -35,6 +35,9 @@ class Logger implements LoggerInterface
     ) {
     }
 
+    /**
+     * @param array<string, mixed> $context
+     */
     public function log(string $namespace, string $message, array $context = [], mixed $level = null): void
     {
         $this->logger->log(
@@ -49,6 +52,9 @@ class Logger implements LoggerInterface
         );
     }
 
+    /**
+     * @param array{0: string, 1: string, 2?: array<string, mixed>} $arguments namespace, message, context
+     */
     public function __call(string $name, array $arguments): void
     {
         $name = strtolower((string) $name);

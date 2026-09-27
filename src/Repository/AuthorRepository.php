@@ -77,7 +77,10 @@ class AuthorRepository extends ServiceEntityRepository
         // A stable order, or rows could move between pages.
         $qb->addOrderBy('a.id', 'ASC');
 
-        return $this->paginate($qb, $page, $size);
+        /** @var Page<Author> $result */
+        $result = $this->paginate($qb, $page, $size);
+
+        return $result;
     }
 
     private function authorExists(string $name): bool

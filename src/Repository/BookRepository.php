@@ -83,7 +83,38 @@ class BookRepository extends ServiceEntityRepository
         // A stable order, or rows could move between pages.
         $qb->addOrderBy('b.id', 'ASC');
 
-        return $this->paginate($qb, $page, $size);
+        /** @var Page<Book> $result */
+        $result = $this->paginate($qb, $page, $size);
+        $this->loadAuthors($result->items);
+
+        return $result;
+    }
+
+    /**
+     * Fills the author list of every given book with one query, instead of one query per
+     * book for its links and one per author (the N+1 of a list page).
+     *
+     * The books are already loaded; fetch-joining them again initialises their author
+     * collections in place, and the result itself is not needed.
+     *
+     * @param list<Book> $books
+     */
+    public function loadAuthors(array $books): void
+    {
+        if ([] === $books) {
+            return;
+        }
+
+        $this->createQueryBuilder('b')
+            ->select('b', 'ba', 'a')
+            ->leftJoin('b.book_authors', 'ba')
+            ->leftJoin('ba.author_id', 'a')
+            ->andWhere('b IN (:books)')
+            ->setParameter('books', $books)
+            // Authors in the order they were added, as a lazy load returned them.
+            ->orderBy('ba.id', 'ASC')
+            ->getQuery()
+            ->getResult();
     }
 
     /**
@@ -111,13 +142,16 @@ class BookRepository extends ServiceEntityRepository
             $book->setDescription($bookPost->description);
         }
         if (null !== $bookPost->price) {
-            $book->setPrice(round((float) $bookPost->price, 2));
+            // Rounded to the column's two decimals; the DTO caps it at 99999999.99.
+            $book->setPrice(number_format(round((float) $bookPost->price, 2), 2, '.', ''));
         }
         if (null !== $bookPost->genre) {
             $book->setGenre(trim($bookPost->genre));
         }
         if (null !== $bookPost->publish_date) {
-            $book->setPublishDate(trim($bookPost->publish_date));
+            // Validated as Y-m-d by the DTO; an empty string clears the date.
+            $date = trim($bookPost->publish_date);
+            $book->setPublishDate('' === $date ? null : new \DateTimeImmutable($date));
         }
 
         try {
