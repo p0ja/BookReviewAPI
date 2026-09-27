@@ -14,6 +14,11 @@ Connection problems are logged to var/log/xdebug.log.
 Docker Engine inside WSL2 with PHPStorm on Windows: host.docker.internal resolves to the WSL VM, not Windows, so pass the Windows host address (the WSL default gateway):
 XDEBUG_MODE=debug XDEBUG_CLIENT_HOST=$(ip route show default | awk '{print $3}') docker compose up -d
 
+# api documentation
+Swagger UI: https://localhost/api/doc (OpenAPI JSON: https://localhost/api/doc.json), public, no token needed to read it.
+To try the endpoints, run POST /login_check from the page, press "Authorize" and paste the token.
+Offline copy: php bin/console nelmio:apidoc:dump > openapi.json
+
 # fixtures
 symfony console doctrine:fixtures:load
 
@@ -64,7 +69,7 @@ DATABASE_URL='postgresql://app:postgres@127.0.0.1:5432/app?serverVersion=16&char
 - pagination metadata (total, page, size) in /books and /reviews responses
 - filtering and search: by title, genre, author and rating
 - average rating and review count per book
-- API documentation (OpenAPI), CORS, rate limiting on /login_check
+- CORS, rate limiting on /login_check
 
 ## api consistency
 - REST paths: DELETE /books/{id} and /reviews/{id} instead of /book/delete/{id} and /review/delete/{id}

@@ -1,0 +1,10 @@
+# Swagger UI and the raw OpenAPI document; both are public (see security.yaml).
+app.swagger_ui:
+    path: /api/doc
+    methods: GET
+    defaults: { _controller: nelmio_api_doc.controller.swagger_ui }
+
+app.swagger:
+    path: /api/doc.json
+    methods: GET
+    defaults: { _controller: nelmio_api_doc.controller.swagger }
