@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Tests\Repository;
 
+use App\Dto\CreateAuthor;
 use App\Factory\AuthorFakeDataFactory;
 use App\Factory\BookFakeDataFactory;
 use App\Repository\AuthorRepository;
@@ -15,8 +16,8 @@ class AuthorRepositoryTest extends RepositoryTestCase
     {
         $repository = $this->service(AuthorRepository::class);
 
-        $first = $repository->createAuthor(['name' => 'Martin Fowler', 'info' => null]);
-        $second = $repository->createAuthor(['name' => 'Martin Fowler', 'info' => 'Chief Scientist']);
+        $first = $repository->createAuthor(new CreateAuthor('Martin Fowler'));
+        $second = $repository->createAuthor(new CreateAuthor('Martin Fowler', 'Chief Scientist'));
 
         self::assertSame($first->getId(), $second->getId());
         self::assertSame('Chief Scientist', $second->getInfo());

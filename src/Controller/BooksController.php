@@ -12,6 +12,7 @@ use App\Repository\AuthorRepository;
 use App\Repository\BookAuthorRepository;
 use App\Repository\BookRepository;
 use App\Repository\ReviewRepository;
+use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Attribute\MapQueryParameter;
@@ -28,6 +29,7 @@ final class BooksController extends AbstractController
         private readonly BookData $bookData,
         private readonly ReviewData $reviewData,
         private readonly LoggerInterface $logger,
+        private readonly EntityManagerInterface $entityManager,
     ) {
     }
 
@@ -71,13 +73,19 @@ final class BooksController extends AbstractController
     #[Route('/books', name: 'book_create', methods: ['POST'])]
     public function create(#[MapRequestPayload] CreateBook $bookPost): Response
     {
-        $book = $this->bookRepository->createBook($bookPost);
+        // One transaction for the book and all its authors: a failure part way through
+        // must not leave a book with only some of them.
+        $book = $this->entityManager->wrapInTransaction(function () use ($bookPost) {
+            $book = $this->bookRepository->createBook($bookPost);
 
-        foreach ($bookPost->authors as $authorData) {
-            $author = $this->authorRepository->createAuthor($authorData);
-            $bookAuthor = $this->bookAuthorRepository->createBookAuthor($book, $author);
-            $book->addBookAuthor($bookAuthor);
-        }
+            foreach ($bookPost->authors ?? [] as $authorData) {
+                $author = $this->authorRepository->createAuthor($authorData);
+                $bookAuthor = $this->bookAuthorRepository->createBookAuthor($book, $author);
+                $book->addBookAuthor($bookAuthor);
+            }
+
+            return $book;
+        });
 
         $booksData = $this->bookData->getOutput($book);
 

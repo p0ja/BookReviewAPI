@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Repository;
 
+use App\Dto\CreateAuthor;
 use App\Entity\Author;
 use App\Logger\LoggerInterface;
 use App\Logger\NamespaceEnum;
@@ -23,16 +24,16 @@ class AuthorRepository extends ServiceEntityRepository
         parent::__construct($registry, Author::class);
     }
 
-    public function createAuthor(array $authorData): Author
+    public function createAuthor(CreateAuthor $authorData): Author
     {
-        if ($this->authorExists($authorData['name'])) {
-            $author = $this->findOneBy(['name' => $authorData['name']]);
+        if ($this->authorExists($authorData->name)) {
+            $author = $this->findOneBy(['name' => $authorData->name]);
         } else {
             $author = new Author();
         }
 
-        $author->setName($authorData['name']);
-        $author->setInfo($authorData['info']);
+        $author->setName($authorData->name);
+        $author->setInfo($authorData->info);
 
         try {
             $em = $this->getEntityManager();

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Tests\Dto;
 
+use App\Dto\CreateAuthor;
 use App\Dto\CreateBook;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
@@ -46,6 +47,25 @@ class CreateBookTest extends TestCase
         yield 'too long publish date' => ['publish_date', str_repeat('1', 26)];
     }
 
+    #[DataProvider('invalidAuthors')]
+    public function testInvalidNestedAuthorIsReported(CreateAuthor $author, string $path): void
+    {
+        $violations = $this->validate(['authors' => [new CreateAuthor('Robert C. Martin'), $author]]);
+
+        self::assertCount(1, $violations);
+        self::assertSame($path, $violations->get(0)->getPropertyPath());
+    }
+
+    /**
+     * @return iterable<string, array{CreateAuthor, string}>
+     */
+    public static function invalidAuthors(): iterable
+    {
+        yield 'blank name' => [new CreateAuthor(''), 'authors[1].name'];
+        yield 'too long name' => [new CreateAuthor(str_repeat('a', 256)), 'authors[1].name'];
+        yield 'too long info' => [new CreateAuthor('Martin Fowler', str_repeat('a', 256)), 'authors[1].info'];
+    }
+
     /**
      * @param array<string, mixed> $overrides
      */
@@ -58,7 +78,7 @@ class CreateBookTest extends TestCase
             'price' => '29.99',
             'genre' => 'Software',
             'publish_date' => '2017-09-10',
-            'authors' => [['name' => 'Robert C. Martin', 'info' => null]],
+            'authors' => [new CreateAuthor('Robert C. Martin')],
         ], $overrides);
 
         return Validation::createValidatorBuilder()
