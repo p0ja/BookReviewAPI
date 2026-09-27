@@ -37,14 +37,14 @@ class BookRepository extends ServiceEntityRepository
         return $qb->getQuery()->getResult();
     }
 
+    /**
+     * Creates a new book; an ISBN that is already taken fails on the unique index,
+     * so check isbnExists() first.
+     */
     public function createBook(CreateBook $bookPost): Book
     {
         $isbn = trim($bookPost->isbn);
-        if ($this->bookExists($isbn)) {
-            $book = $this->findOneBy(['isbn' => $isbn]);
-        } else {
-            $book = new Book();
-        }
+        $book = new Book();
 
         $price = round((float) $bookPost->price, 2);
 
@@ -90,8 +90,9 @@ class BookRepository extends ServiceEntityRepository
         return false;
     }
 
-    private function bookExists(string $isbn): bool
+    public function isbnExists(string $isbn): bool
     {
+        $isbn = trim($isbn);
         $bookCheck = $this->createQueryBuilder('b')
             ->andWhere('b.isbn = :val')
             ->setParameter('val', $isbn)

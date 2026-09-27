@@ -52,6 +52,14 @@ curl -v -X POST http://127.0.0.1:8000/books -H 'Authorization: Bearer [jwt token
 # create review
 curl -v -X POST http://127.0.0.1:8000/books/{id}/reviews -H 'Authorization: Bearer [jwt token]' -H 'Content-Type: application/json' -d '{"name":"reviewer name","content":"prosty nowy review content","rating":"3"}'
 
+# delete a book (with its reviews) or a review
+curl -X DELETE -H "Authorization: Bearer [jwt token]" https://localhost/books/{id}
+curl -X DELETE -H "Authorization: Bearer [jwt token]" https://localhost/reviews/{id}
+
+# errors
+Every error answers {"error": "..."} with the matching status: 401 (missing, invalid or expired token, wrong password), 404, 409 (POST /books with an ISBN that already exists), 422 (validation).
+POST /books answers 201 with a Location header pointing at the new book.
+
 # tests
 The API and repository tests use the test database (app_test, created and reset automatically), so the database service must be running.
 docker compose exec php bin/phpunit
@@ -61,7 +69,7 @@ DATABASE_URL='postgresql://app:postgres@127.0.0.1:5432/app?serverVersion=16&char
 
 # todo:
 ## missing functionality
-- update endpoints: PUT/PATCH /books/{id} and /reviews/{id} (only create and delete exist)
+- update endpoints: PUT/PATCH /books/{id} and /reviews/{id} (only create and delete exist; POST /books with a known ISBN answers 409, so there is no way to change a book yet)
 - single review endpoint: GET /reviews/{id}
 - authors resource: GET /authors, GET /authors/{id} and the books of an author
 - user registration (symfonycasts/verify-email-bundle is installed but unused)
@@ -70,12 +78,6 @@ DATABASE_URL='postgresql://app:postgres@127.0.0.1:5432/app?serverVersion=16&char
 - filtering and search: by title, genre, author and rating
 - average rating and review count per book
 - CORS, rate limiting on /login_check
-
-## api consistency
-- REST paths: DELETE /books/{id} and /reviews/{id} instead of /book/delete/{id} and /review/delete/{id}
-- POST /books should return 201 with a Location header (currently 200)
-- POST /books with an existing ISBN overwrites that book and appends authors; return 409 instead
-- one error format: JWT failures answer {"code":401,"message":...}, other errors {"error":...}
 
 ## technical debt
 - N+1 queries on /books and /reviews (authors and books are lazy-loaded per row)

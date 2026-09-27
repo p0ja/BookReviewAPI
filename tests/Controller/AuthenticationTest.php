@@ -33,6 +33,7 @@ class AuthenticationTest extends ApiTestCase
         $this->requestJson('POST', '/login_check', ['username' => 'reader@example.com', 'password' => 'wrong']);
 
         self::assertResponseStatusCodeSame(Response::HTTP_UNAUTHORIZED);
+        self::assertSame(['error' => 'Invalid credentials.'], $this->responseData());
     }
 
     public function testUnknownUserIsRejected(): void
@@ -48,6 +49,8 @@ class AuthenticationTest extends ApiTestCase
         $this->client->request($method, $uri);
 
         self::assertResponseStatusCodeSame(Response::HTTP_UNAUTHORIZED);
+        self::assertResponseHeaderSame('WWW-Authenticate', 'Bearer');
+        self::assertSame(['error' => 'JWT Token not found'], $this->responseData());
     }
 
     /**
@@ -60,9 +63,9 @@ class AuthenticationTest extends ApiTestCase
         yield 'create book' => ['POST', '/books'];
         yield 'book reviews' => ['GET', '/books/1/reviews'];
         yield 'create review' => ['POST', '/books/1/reviews'];
-        yield 'delete book' => ['DELETE', '/book/delete/1'];
+        yield 'delete book' => ['DELETE', '/books/1'];
         yield 'list reviews' => ['GET', '/reviews'];
-        yield 'delete review' => ['DELETE', '/review/delete/1'];
+        yield 'delete review' => ['DELETE', '/reviews/1'];
     }
 
     public function testInvalidTokenIsRejected(): void
@@ -70,5 +73,6 @@ class AuthenticationTest extends ApiTestCase
         $this->client->request('GET', '/books', server: ['HTTP_AUTHORIZATION' => 'Bearer not-a-jwt']);
 
         self::assertResponseStatusCodeSame(Response::HTTP_UNAUTHORIZED);
+        self::assertSame(['error' => 'Invalid JWT Token'], $this->responseData());
     }
 }
