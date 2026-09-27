@@ -9,6 +9,8 @@ use Lexik\Bundle\JWTAuthenticationBundle\Events;
 use Lexik\Bundle\JWTAuthenticationBundle\Response\JWTAuthenticationFailureResponse;
 use Symfony\Component\EventDispatcher\Attribute\AsEventListener;
 use Symfony\Component\HttpFoundation\JsonResponse;
+use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\Security\Core\Exception\TooManyLoginAttemptsAuthenticationException;
 
 /**
  * Lexik answers failed logins and missing, invalid or expired tokens with
@@ -28,10 +30,15 @@ final class JwtFailureListener
             return;
         }
 
+        // Throttled logins get 429 rather than Lexik's 401.
+        $status = $event->getException() instanceof TooManyLoginAttemptsAuthenticationException
+            ? Response::HTTP_TOO_MANY_REQUESTS
+            : $response->getStatusCode();
+
         // Keep the headers, WWW-Authenticate: Bearer among them.
         $event->setResponse(new JsonResponse(
             ['error' => $response->getMessage()],
-            $response->getStatusCode(),
+            $status,
             $response->headers->all(),
         ));
     }

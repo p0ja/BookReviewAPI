@@ -14,6 +14,7 @@ class ReviewData
             'review_id' => $review->getId(),
             'book_id' => $review->getBook()?->getId(),
             'book_name' => $review->getBook()?->getTitle(),
+            'user_id' => $review->getUser()?->getId(),
             'reviewer' => $review->getName(),
             'content' => $review->getContent(),
             'rating' => $review->getRating(),

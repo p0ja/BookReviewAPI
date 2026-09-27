@@ -35,6 +35,14 @@ class Review
     #[ORM\JoinColumn(nullable: false)]
     private ?Book $book_id = null;
 
+    /**
+     * Who posted the review; null for reviews from before reviews had owners, and
+     * after the account is deleted. Only admins can change those.
+     */
+    #[ORM\ManyToOne]
+    #[ORM\JoinColumn(name: 'user_id', nullable: true, onDelete: 'SET NULL')]
+    private ?User $user = null;
+
     public function getId(): ?int
     {
         return $this->id;
@@ -115,6 +123,18 @@ class Review
     public function setBook(?Book $book_id): static
     {
         $this->book_id = $book_id;
+
+        return $this;
+    }
+
+    public function getUser(): ?User
+    {
+        return $this->user;
+    }
+
+    public function setUser(?User $user): static
+    {
+        $this->user = $user;
 
         return $this;
     }

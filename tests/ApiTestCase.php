@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Tests;
 
+use App\Entity\User;
 use App\Factory\UserFakeDataFactory;
 use Lexik\Bundle\JWTAuthenticationBundle\Services\JWTTokenManagerInterface;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
@@ -24,17 +25,23 @@ abstract class ApiTestCase extends WebTestCase
     protected function setUp(): void
     {
         $this->client = static::createClient();
+        // Failed logins are throttled; start every test with a clean slate.
+        static::getContainer()->get('cache.rate_limiter')->clear();
     }
 
     /**
      * Sends every following request with a valid JWT for a freshly created user.
+     *
+     * @param list<string> $roles
      */
-    protected function authenticate(): void
+    protected function authenticate(array $roles = ['ROLE_USER']): User
     {
-        $user = UserFakeDataFactory::createOne()->_real();
+        $user = UserFakeDataFactory::createOne(['roles' => $roles])->_real();
         $token = static::getContainer()->get(JWTTokenManagerInterface::class)->create($user);
 
         $this->client->setServerParameter('HTTP_AUTHORIZATION', 'Bearer '.$token);
+
+        return $user;
     }
 
     /**
@@ -56,5 +63,15 @@ abstract class ApiTestCase extends WebTestCase
     protected function responseData(): array
     {
         return json_decode((string) $this->client->getResponse()->getContent(), true, flags: JSON_THROW_ON_ERROR);
+    }
+
+    /**
+     * The items of a list endpoint's page.
+     *
+     * @return list<array<string, mixed>>
+     */
+    protected function items(): array
+    {
+        return $this->responseData()['items'];
     }
 }

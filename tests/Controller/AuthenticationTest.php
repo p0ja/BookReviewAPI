@@ -66,6 +66,10 @@ class AuthenticationTest extends ApiTestCase
         yield 'delete book' => ['DELETE', '/books/1'];
         yield 'list reviews' => ['GET', '/reviews'];
         yield 'delete review' => ['DELETE', '/reviews/1'];
+        yield 'get review' => ['GET', '/reviews/1'];
+        yield 'list authors' => ['GET', '/authors'];
+        yield 'get author' => ['GET', '/authors/1'];
+        yield 'author books' => ['GET', '/authors/1/books'];
     }
 
     public function testInvalidTokenIsRejected(): void
@@ -74,5 +78,23 @@ class AuthenticationTest extends ApiTestCase
 
         self::assertResponseStatusCodeSame(Response::HTTP_UNAUTHORIZED);
         self::assertSame(['error' => 'Invalid JWT Token'], $this->responseData());
+    }
+
+    public function testRepeatedFailedLoginsAreThrottled(): void
+    {
+        UserFakeDataFactory::createOne(['email' => 'reader@example.com', 'password' => 'secret']);
+        // One kernel for every request, so the limiter state is kept between them.
+        $this->client->disableReboot();
+
+        for ($attempt = 1; $attempt <= 5; ++$attempt) {
+            $this->requestJson('POST', '/login_check', ['username' => 'reader@example.com', 'password' => 'wrong']);
+            self::assertResponseStatusCodeSame(Response::HTTP_UNAUTHORIZED);
+        }
+
+        // Blocked now, even with the right password.
+        $this->requestJson('POST', '/login_check', ['username' => 'reader@example.com', 'password' => 'secret']);
+
+        self::assertResponseStatusCodeSame(Response::HTTP_TOO_MANY_REQUESTS);
+        self::assertStringStartsWith('Too many failed login attempts', $this->responseData()['error']);
     }
 }

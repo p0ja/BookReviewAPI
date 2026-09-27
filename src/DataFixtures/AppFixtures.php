@@ -16,13 +16,15 @@ class AppFixtures extends Fixture
 {
     public function load(ObjectManager $manager): void
     {
+        $users = [
+            UserFakeDataFactory::createOne(['email' => 'admin@example.com', 'password' => 'admin', 'roles' => ['ROLE_ADMIN']]),
+            UserFakeDataFactory::createOne(['email' => 'user@example.com', 'password' => 'user']),
+        ];
+
         AuthorFakeDataFactory::createMany(20);
         BookFakeDataFactory::createMany(20);
         BookAuthorFakeDataFactory::createMany(20);
-        BookReviewFakeDataFactory::createMany(20);
-
-        UserFakeDataFactory::createOne(['email' => 'admin@example.com', 'password' => 'admin', 'roles' => ['ROLE_ADMIN']]);
-        UserFakeDataFactory::createOne(['email' => 'user@example.com', 'password' => 'user']);
+        BookReviewFakeDataFactory::createMany(20, static fn (): array => ['user' => $users[array_rand($users)]]);
 
         $manager->flush();
     }

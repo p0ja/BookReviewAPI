@@ -1,6 +1,12 @@
 # BookReviewAPI
 REST API books and reviews management
 
+# local secrets (first run)
+The committed .env holds defaults only; secrets go in .env.local, which git ignores. Create it once:
+printf 'APP_SECRET=%s\nJWT_PASSPHRASE=%s\n' "$(openssl rand -hex 16)" "$(openssl rand -hex 32)" > .env.local
+
+Then generate the JWT key pair (see JWT below), which is encrypted with that JWT_PASSPHRASE.
+
 # docker
 docker compose up -d
 
@@ -23,19 +29,29 @@ Offline copy: php bin/console nelmio:apidoc:dump > openapi.json
 symfony console doctrine:fixtures:load
 
 # JWT:
-php bin/console lexik:jwt:generate-keypair
+The keys (config/jwt/*.pem, not committed) must be encrypted with the JWT_PASSPHRASE from .env.local; after changing the passphrase, regenerate them (this invalidates every issued token) and restart the php container, which reads .env.local when it starts:
+docker compose exec php bin/console lexik:jwt:generate-keypair --overwrite
+docker compose restart php
 
 # password hasher
 bin/console security:hash-password
 
-# logging (default token ttl=1h)
+# register and log in (default token ttl=1h)
+Anyone can create a ROLE_USER account (password at least 8 characters); it can log in straight away.
+curl -X POST -H "Content-Type: application/json" https://localhost/register -d '{"email":"reader@example.com","password":"long enough"}'
+
 Users are loaded from the users table by email. The fixtures create admin@example.com / admin (ROLE_ADMIN) and user@example.com / user (ROLE_USER).
+After 5 failed logins for an email from one address within a minute, /login_check answers 429 until the minute is over.
 curl -X POST -H "Content-Type: application/json" https://localhost/login_check -d '{"username":"user@example.com","password":"user"}'
 
 # requests
-# list books - pagination and sorting are query parameters (page, size, orderBy)
-# size defaults to 20 and is capped at 100; a malformed value answers 400
+# lists (/books, /reviews, /authors, /authors/{id}/books) answer one page: {"items": [...], "total": 42, "page": 1, "size": 20}
+# pagination and sorting are query parameters (page, size, orderBy); size defaults to 20 and is capped at 100; a malformed value answers 400
+# books have average_rating (null without reviews) and review_count
 curl -X GET -H "Authorization: Bearer [jwt token]" 'https://localhost/books?page=1&size=20&orderBy=title'
+
+# filter books: title and author match part of the text, genre the whole genre (all case-insensitive), minRating the average rating
+curl -X GET -H "Authorization: Bearer [jwt token]" 'https://localhost/books?title=clean&genre=software&author=martin&minRating=4'
 
 # single book
 curl -X GET -H "Authorization: Bearer [jwt token]" https://localhost/books/{id}
@@ -43,8 +59,14 @@ curl -X GET -H "Authorization: Bearer [jwt token]" https://localhost/books/{id}
 # reviews of a book
 curl -X GET -H "Authorization: Bearer [jwt token]" https://localhost/books/{id}/reviews
 
-# list reviews
-curl -X GET -H "Authorization: Bearer [jwt token]" 'https://localhost/reviews?page=1&size=20&orderBy=rating'
+# list reviews (rating keeps only reviews with that rating), single review
+curl -X GET -H "Authorization: Bearer [jwt token]" 'https://localhost/reviews?page=1&size=20&orderBy=rating&rating=5'
+curl -X GET -H "Authorization: Bearer [jwt token]" https://localhost/reviews/{id}
+
+# authors (name matches part of the name), single author, books of an author
+curl -X GET -H "Authorization: Bearer [jwt token]" 'https://localhost/authors?name=martin&orderBy=name'
+curl -X GET -H "Authorization: Bearer [jwt token]" https://localhost/authors/{id}
+curl -X GET -H "Authorization: Bearer [jwt token]" https://localhost/authors/{id}/books
 
 # create book
 curl -v -X POST http://127.0.0.1:8000/books -H 'Authorization: Bearer [jwt token]' -H 'Content-Type: application/json' -d '{"title":"nowy title","isbn":"nowyIsbn0123","description":"book description","price":"123.14","genre":"PHP","publish_date":"2023-12-12","authors":[{"name":"author1 name and surname","info":"information about author"},{"name":"author2 name","info":"information about author"}]}'
@@ -52,12 +74,22 @@ curl -v -X POST http://127.0.0.1:8000/books -H 'Authorization: Bearer [jwt token
 # create review
 curl -v -X POST http://127.0.0.1:8000/books/{id}/reviews -H 'Authorization: Bearer [jwt token]' -H 'Content-Type: application/json' -d '{"name":"reviewer name","content":"prosty nowy review content","rating":"3"}'
 
-# delete a book (with its reviews) or a review
+# update a book (admins only): PUT sets every field and replaces the authors, PATCH only the given fields (authors, when given, replace all of them)
+curl -X PATCH https://localhost/books/{id} -H 'Authorization: Bearer [jwt token]' -H 'Content-Type: application/json' -d '{"price":"25.00"}'
+
+# update a review (its author or an admin), same PUT/PATCH rules
+curl -X PATCH https://localhost/reviews/{id} -H 'Authorization: Bearer [jwt token]' -H 'Content-Type: application/json' -d '{"rating":"4"}'
+
+# delete a book with its reviews (admins only) or a review (its author or an admin)
 curl -X DELETE -H "Authorization: Bearer [jwt token]" https://localhost/books/{id}
 curl -X DELETE -H "Authorization: Bearer [jwt token]" https://localhost/reviews/{id}
 
+# permissions
+Reviews belong to the user who posted them (user_id). Reviews from before that have no owner, so only admins can change them.
+Browsers may call the API from localhost or 127.0.0.1 on any port (CORS); set CORS_ALLOW_ORIGIN (a regex) in .env.local for other origins.
+
 # errors
-Every error answers {"error": "..."} with the matching status: 401 (missing, invalid or expired token, wrong password), 404, 409 (POST /books with an ISBN that already exists), 422 (validation).
+Every error answers {"error": "..."} with the matching status: 401 (missing, invalid or expired token, wrong password), 403 (not allowed to change it), 404, 409 (an ISBN or email that is already taken), 422 (validation), 429 (too many failed logins).
 POST /books answers 201 with a Location header pointing at the new book.
 
 # tests
@@ -68,21 +100,9 @@ From the host, point the tests at the database port published by compose.overrid
 DATABASE_URL='postgresql://app:postgres@127.0.0.1:5432/app?serverVersion=16&charset=utf8' php bin/phpunit
 
 # todo:
-## missing functionality
-- update endpoints: PUT/PATCH /books/{id} and /reviews/{id} (only create and delete exist; POST /books with a known ISBN answers 409, so there is no way to change a book yet)
-- single review endpoint: GET /reviews/{id}
-- authors resource: GET /authors, GET /authors/{id} and the books of an author
-- user registration (symfonycasts/verify-email-bundle is installed but unused)
-- authorization: any logged-in user can delete any book or review; deletes should require ROLE_ADMIN, and reviews should belong to a user so only the owner can edit them
-- pagination metadata (total, page, size) in /books and /reviews responses
-- filtering and search: by title, genre, author and rating
-- average rating and review count per book
-- CORS, rate limiting on /login_check
-
 ## technical debt
 - N+1 queries on /books and /reviews (authors and books are lazy-loaded per row)
 - data model: price as decimal(10,2), publish_date as date, description as text, unique (book_id, author_id) in book_author
 - CI: run the tests against PostgreSQL instead of SQLite, enable the disabled steps in .github/workflows/ci.yml, add PHPStan
 - remove the stale phpunit.xml.dist (phpunit.dist.xml is the one in use)
 - remove the unused #[Timestampable] attribute on Book::$createdAt (the Stof extensions bundle is not registered)
-- move JWT_PASSPHRASE and APP_SECRET out of the committed .env files

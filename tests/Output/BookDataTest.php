@@ -8,6 +8,7 @@ use App\Entity\Author;
 use App\Entity\Book;
 use App\Entity\BookAuthor;
 use App\Output\BookData;
+use App\Repository\ReviewRepository;
 use PHPUnit\Framework\TestCase;
 
 class BookDataTest extends TestCase
@@ -22,7 +23,7 @@ class BookDataTest extends TestCase
             ->setDescription('Improving the design of existing code')
             ->setGenre('Software')
             ->setPublishDate('2018-11-20');
-        $book->addBookAuthor((new BookAuthor())->setAuthor((new Author())->setName('Martin Fowler')));
+        $book->addBookAuthor((new BookAuthor())->setAuthor((new Author())->setId(8)->setName('Martin Fowler')));
 
         self::assertSame([
             'id' => 3,
@@ -33,16 +34,20 @@ class BookDataTest extends TestCase
             'genre' => 'Software',
             'publish_date' => '2018-11-20',
             'authors' => [
-                ['id' => null, 'name' => 'Martin Fowler'],
+                ['id' => 8, 'name' => 'Martin Fowler'],
             ],
-        ], (new BookData())->getOutput($book));
+            'average_rating' => 4.5,
+            'review_count' => 2,
+        ], $this->bookData()->getOutput($book, ['average' => 4.5, 'count' => 2]));
     }
 
     public function testBookWithoutAuthorsHasAnEmptyAuthorList(): void
     {
-        $output = (new BookData())->getOutput((new Book())->setTitle('Anonymous'));
+        $output = $this->bookData()->getOutput((new Book())->setTitle('Anonymous'));
 
         self::assertSame([], $output['authors']);
+        self::assertNull($output['average_rating']);
+        self::assertSame(0, $output['review_count']);
     }
 
     public function testLinkWithoutAnAuthorHasANullName(): void
@@ -50,6 +55,11 @@ class BookDataTest extends TestCase
         $book = new Book();
         $book->addBookAuthor(new BookAuthor());
 
-        self::assertSame([['id' => null, 'name' => null]], (new BookData())->getOutput($book)['authors']);
+        self::assertSame([['id' => null, 'name' => null]], $this->bookData()->getOutput($book)['authors']);
+    }
+
+    private function bookData(): BookData
+    {
+        return new BookData(self::createStub(ReviewRepository::class));
     }
 }
