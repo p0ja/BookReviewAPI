@@ -8,7 +8,7 @@ use Symfony\Component\Serializer\Attribute\Ignore;
 
 #[ORM\Entity(repositoryClass: BookAuthorRepository::class)]
 // A book lists an author once.
-#[ORM\UniqueConstraint(name: 'UNIQ_BOOK_AUTHOR', fields: ['book_id', 'author_id'])]
+#[ORM\UniqueConstraint(name: 'UNIQ_BOOK_AUTHOR', fields: ['book', 'author'])]
 class BookAuthor
 {
     #[ORM\Id]
@@ -17,12 +17,14 @@ class BookAuthor
     private ?int $id = null;
 
     #[ORM\ManyToOne(inversedBy: 'book_authors')]
+    #[ORM\JoinColumn(name: 'book_id')]
     #[Ignore]
-    private ?Book $book_id = null;
+    private ?Book $book = null;
 
     #[ORM\ManyToOne(inversedBy: 'author_books')]
+    #[ORM\JoinColumn(name: 'author_id')]
     #[Ignore]
-    private ?Author $author_id = null;
+    private ?Author $author = null;
 
     public function getId(): ?int
     {
@@ -31,38 +33,24 @@ class BookAuthor
 
     public function getBook(): ?Book
     {
-        return $this->book_id;
+        return $this->book;
     }
 
-    public function setBook(?Book $book_id): static
+    public function setBook(?Book $book): static
     {
-        $this->book_id = $book_id;
-
-        return $this;
-    }
-
-    public function setBookId(?Book $book_id): static
-    {
-        $this->book_id = $book_id;
+        $this->book = $book;
 
         return $this;
     }
 
     public function getAuthor(): ?Author
     {
-        return $this->author_id;
+        return $this->author;
     }
 
-    public function setAuthor(?Author $author_id): static
+    public function setAuthor(?Author $author): static
     {
-        $this->author_id = $author_id;
-
-        return $this;
-    }
-
-    public function setAuthorId(?Author $author_id): static
-    {
-        $this->author_id = $author_id;
+        $this->author = $author;
 
         return $this;
     }

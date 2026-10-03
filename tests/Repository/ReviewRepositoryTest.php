@@ -30,8 +30,8 @@ class ReviewRepositoryTest extends RepositoryTestCase
     public function testFindByBookIdReturnsOnlyThatBooksReviews(): void
     {
         $book = BookFakeDataFactory::createOne();
-        BookReviewFakeDataFactory::createMany(2, ['book_id' => $book]);
-        BookReviewFakeDataFactory::createOne(['book_id' => BookFakeDataFactory::createOne()]);
+        BookReviewFakeDataFactory::createMany(2, ['book' => $book]);
+        BookReviewFakeDataFactory::createOne(['book' => BookFakeDataFactory::createOne()]);
 
         $reviews = $this->service(ReviewRepository::class)->findByBookId($book->getId());
 
@@ -43,7 +43,7 @@ class ReviewRepositoryTest extends RepositoryTestCase
 
     public function testRemoveReviewReportsWhetherAReviewWasDeleted(): void
     {
-        $id = BookReviewFakeDataFactory::createOne(['book_id' => BookFakeDataFactory::createOne()])->getId();
+        $id = BookReviewFakeDataFactory::createOne(['book' => BookFakeDataFactory::createOne()])->getId();
         $repository = $this->service(ReviewRepository::class);
 
         self::assertTrue($repository->removeReview($id));

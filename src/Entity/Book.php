@@ -52,14 +52,14 @@ class Book
     /**
      * @var Collection<int, BookAuthor>
      */
-    #[ORM\OneToMany(targetEntity: BookAuthor::class, mappedBy: 'book_id', orphanRemoval: true)]
+    #[ORM\OneToMany(targetEntity: BookAuthor::class, mappedBy: 'book', orphanRemoval: true)]
     #[Ignore]
     private Collection $book_authors;
 
     /**
      * @var Collection<int, Review>
      */
-    #[ORM\OneToMany(targetEntity: Review::class, mappedBy: 'book_id', orphanRemoval: true)]
+    #[ORM\OneToMany(targetEntity: Review::class, mappedBy: 'book', orphanRemoval: true)]
     private Collection $reviews;
 
     public function __construct()
@@ -199,7 +199,7 @@ class Book
     {
         if (!$this->reviews->contains($review)) {
             $this->reviews->add($review);
-            $review->setBookId($this);
+            $review->setBook($this);
         }
 
         return $this;
@@ -209,8 +209,8 @@ class Book
     {
         if ($this->reviews->removeElement($review)) {
             // set the owning side to null (unless already changed)
-            if ($review->getBookId() === $this) {
-                $review->setBookId(null);
+            if ($review->getBook() === $this) {
+                $review->setBook(null);
             }
         }
 

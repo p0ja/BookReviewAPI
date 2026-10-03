@@ -55,11 +55,11 @@ class QueryCountTest extends ApiTestCase
     public function testSingleBookDoesNotQueryPerAuthor(): void
     {
         $book = BookFakeDataFactory::createOne();
-        BookAuthorFakeDataFactory::createOne(['book_id' => $book, 'author_id' => AuthorFakeDataFactory::createOne()]);
+        BookAuthorFakeDataFactory::createOne(['book' => $book, 'author' => AuthorFakeDataFactory::createOne()]);
         $one = $this->queryCount('/books/'.$book->getId());
 
         foreach (range(1, 4) as $i) {
-            BookAuthorFakeDataFactory::createOne(['book_id' => $book, 'author_id' => AuthorFakeDataFactory::createOne()]);
+            BookAuthorFakeDataFactory::createOne(['book' => $book, 'author' => AuthorFakeDataFactory::createOne()]);
         }
         $many = $this->queryCount('/books/'.$book->getId());
 
@@ -71,7 +71,7 @@ class QueryCountTest extends ApiTestCase
     {
         $book = BookFakeDataFactory::createOne();
         foreach (['Zoe', 'Adam', 'Mia'] as $name) {
-            BookAuthorFakeDataFactory::createOne(['book_id' => $book, 'author_id' => AuthorFakeDataFactory::createOne(['name' => $name])]);
+            BookAuthorFakeDataFactory::createOne(['book' => $book, 'author' => AuthorFakeDataFactory::createOne(['name' => $name])]);
         }
 
         $this->client->request('GET', '/books');
@@ -81,11 +81,11 @@ class QueryCountTest extends ApiTestCase
 
     public function testReviewListDoesNotQueryPerReview(): void
     {
-        BookReviewFakeDataFactory::createOne(['book_id' => BookFakeDataFactory::createOne()]);
+        BookReviewFakeDataFactory::createOne(['book' => BookFakeDataFactory::createOne()]);
         $one = $this->queryCount('/reviews');
 
         foreach (range(1, 5) as $i) {
-            BookReviewFakeDataFactory::createOne(['book_id' => BookFakeDataFactory::createOne()]);
+            BookReviewFakeDataFactory::createOne(['book' => BookFakeDataFactory::createOne()]);
         }
         $many = $this->queryCount('/reviews');
 
@@ -101,9 +101,9 @@ class QueryCountTest extends ApiTestCase
     {
         foreach (range(1, $count) as $i) {
             $book = BookFakeDataFactory::createOne();
-            BookAuthorFakeDataFactory::createOne(['book_id' => $book, 'author_id' => $shared ?? AuthorFakeDataFactory::createOne()]);
-            BookAuthorFakeDataFactory::createOne(['book_id' => $book, 'author_id' => AuthorFakeDataFactory::createOne()]);
-            BookReviewFakeDataFactory::createOne(['book_id' => $book]);
+            BookAuthorFakeDataFactory::createOne(['book' => $book, 'author' => $shared ?? AuthorFakeDataFactory::createOne()]);
+            BookAuthorFakeDataFactory::createOne(['book' => $book, 'author' => AuthorFakeDataFactory::createOne()]);
+            BookReviewFakeDataFactory::createOne(['book' => $book]);
         }
     }
 

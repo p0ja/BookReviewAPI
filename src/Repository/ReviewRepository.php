@@ -34,7 +34,7 @@ class ReviewRepository extends ServiceEntityRepository
     public function findByBookId(int $id): array
     {
         return $this->createQueryBuilder('b')
-            ->andWhere('b.book_id = :val')
+            ->andWhere('b.book = :val')
             ->setParameter('val', $id)
             ->getQuery()
             ->getResult();
@@ -45,7 +45,7 @@ class ReviewRepository extends ServiceEntityRepository
         $submitDate = new \DateTimeImmutable('now');
 
         $review = new Review();
-        $review->setBookId($book);
+        $review->setBook($book);
         $review->setUser($user);
         $review->setSubmitDate($submitDate);
 
@@ -98,7 +98,7 @@ class ReviewRepository extends ServiceEntityRepository
         // A many-to-one join adds no rows, so paging stays exact.
         $qb = $this->createQueryBuilder('b')
             ->addSelect('book')
-            ->innerJoin('b.book_id', 'book');
+            ->innerJoin('b.book', 'book');
         if (null !== $rating) {
             $qb->andWhere('b.rating = :rating')->setParameter('rating', $rating);
         }
@@ -128,10 +128,10 @@ class ReviewRepository extends ServiceEntityRepository
         }
 
         $rows = $this->createQueryBuilder('r')
-            ->select('IDENTITY(r.book_id) AS book, AVG(r.rating) AS average, COUNT(r.id) AS reviews')
-            ->andWhere('r.book_id IN (:books)')
+            ->select('IDENTITY(r.book) AS book, AVG(r.rating) AS average, COUNT(r.id) AS reviews')
+            ->andWhere('r.book IN (:books)')
             ->setParameter('books', $bookIds)
-            ->groupBy('r.book_id')
+            ->groupBy('r.book')
             ->getQuery()
             ->getArrayResult();
 

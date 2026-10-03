@@ -29,8 +29,8 @@ final class BookAuthorFakeDataFactory extends PersistentProxyObjectFactory
     protected function defaults(): array|callable
     {
         return [
-            'book_id' => self::faker()->randomElement($this->bookRepository->findAll()),
-            'author_id' => self::faker()->randomElement($this->authorRepository->findAll()),
+            'book' => self::faker()->randomElement($this->bookRepository->findAll()),
+            'author' => self::faker()->randomElement($this->authorRepository->findAll()),
         ];
     }
 }

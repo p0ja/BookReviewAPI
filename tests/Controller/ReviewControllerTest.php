@@ -25,8 +25,8 @@ class ReviewControllerTest extends ApiTestCase
     public function testListReturnsReviewsOfAllBooks(): void
     {
         $book = BookFakeDataFactory::createOne(['title' => 'Refactoring']);
-        BookReviewFakeDataFactory::createOne(['book_id' => $book, 'name' => 'Jane', 'content' => 'Great', 'rating' => 5]);
-        BookReviewFakeDataFactory::createOne(['book_id' => BookFakeDataFactory::createOne()]);
+        BookReviewFakeDataFactory::createOne(['book' => $book, 'name' => 'Jane', 'content' => 'Great', 'rating' => 5]);
+        BookReviewFakeDataFactory::createOne(['book' => BookFakeDataFactory::createOne()]);
 
         $this->client->request('GET', '/reviews?orderBy=name');
 
@@ -43,7 +43,7 @@ class ReviewControllerTest extends ApiTestCase
 
     public function testListIsPaginated(): void
     {
-        BookReviewFakeDataFactory::createMany(3, ['book_id' => BookFakeDataFactory::createOne()]);
+        BookReviewFakeDataFactory::createMany(3, ['book' => BookFakeDataFactory::createOne()]);
 
         $this->client->request('GET', '/reviews?page=2&size=2');
 
@@ -56,7 +56,7 @@ class ReviewControllerTest extends ApiTestCase
     {
         $book = BookFakeDataFactory::createOne();
         foreach ([3, 1, 5] as $rating) {
-            BookReviewFakeDataFactory::createOne(['book_id' => $book, 'rating' => $rating]);
+            BookReviewFakeDataFactory::createOne(['book' => $book, 'rating' => $rating]);
         }
 
         $this->client->request('GET', '/reviews?orderBy=rating');
@@ -68,7 +68,7 @@ class ReviewControllerTest extends ApiTestCase
     {
         $book = BookFakeDataFactory::createOne();
         foreach ([3, 5, 5] as $rating) {
-            BookReviewFakeDataFactory::createOne(['book_id' => $book, 'rating' => $rating]);
+            BookReviewFakeDataFactory::createOne(['book' => $book, 'rating' => $rating]);
         }
 
         $this->client->request('GET', '/reviews?rating=5');
@@ -79,7 +79,7 @@ class ReviewControllerTest extends ApiTestCase
 
     public function testGetReturnsASingleReview(): void
     {
-        $review = BookReviewFakeDataFactory::createOne(['book_id' => BookFakeDataFactory::createOne(), 'content' => 'Worth it', 'rating' => 4]);
+        $review = BookReviewFakeDataFactory::createOne(['book' => BookFakeDataFactory::createOne(), 'content' => 'Worth it', 'rating' => 4]);
 
         $this->client->request('GET', '/reviews/'.$review->getId());
 
@@ -104,7 +104,7 @@ class ReviewControllerTest extends ApiTestCase
 
     public function testDeleteRemovesTheReview(): void
     {
-        $review = BookReviewFakeDataFactory::createOne(['book_id' => BookFakeDataFactory::createOne(), 'user' => $this->user]);
+        $review = BookReviewFakeDataFactory::createOne(['book' => BookFakeDataFactory::createOne(), 'user' => $this->user]);
 
         $this->client->request('DELETE', '/reviews/'.$review->getId());
 
@@ -186,7 +186,7 @@ class ReviewControllerTest extends ApiTestCase
     public function testOtherUsersCannotChangeTheReview(string $method, array $payload): void
     {
         $review = BookReviewFakeDataFactory::createOne([
-            'book_id' => BookFakeDataFactory::createOne(),
+            'book' => BookFakeDataFactory::createOne(),
             'user' => UserFakeDataFactory::createOne(),
             'content' => 'Original',
         ]);
@@ -203,7 +203,7 @@ class ReviewControllerTest extends ApiTestCase
     #[DataProvider('changes')]
     public function testReviewsWithoutAnOwnerAreAdminOnly(string $method, array $payload): void
     {
-        $review = BookReviewFakeDataFactory::createOne(['book_id' => BookFakeDataFactory::createOne(), 'content' => 'Original']);
+        $review = BookReviewFakeDataFactory::createOne(['book' => BookFakeDataFactory::createOne(), 'content' => 'Original']);
 
         $this->requestJson($method, '/reviews/'.$review->getId(), $payload);
 
@@ -218,7 +218,7 @@ class ReviewControllerTest extends ApiTestCase
     {
         $this->authenticate(['ROLE_ADMIN']);
         $review = BookReviewFakeDataFactory::createOne([
-            'book_id' => BookFakeDataFactory::createOne(),
+            'book' => BookFakeDataFactory::createOne(),
             'user' => UserFakeDataFactory::createOne(),
         ]);
 
@@ -230,7 +230,7 @@ class ReviewControllerTest extends ApiTestCase
     private function ownReview(): object
     {
         return BookReviewFakeDataFactory::createOne([
-            'book_id' => BookFakeDataFactory::createOne(),
+            'book' => BookFakeDataFactory::createOne(),
             'user' => $this->user,
             'content' => 'Original',
             'rating' => 5,

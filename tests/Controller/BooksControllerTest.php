@@ -25,7 +25,7 @@ class BooksControllerTest extends ApiTestCase
     {
         $book = BookFakeDataFactory::createOne(['title' => 'Domain-Driven Design', 'isbn' => '9780321125215']);
         $author = AuthorFakeDataFactory::createOne(['name' => 'Eric Evans']);
-        BookAuthorFakeDataFactory::createOne(['book_id' => $book, 'author_id' => $author]);
+        BookAuthorFakeDataFactory::createOne(['book' => $book, 'author' => $author]);
 
         $this->client->request('GET', '/books');
 
@@ -62,7 +62,7 @@ class BooksControllerTest extends ApiTestCase
         $reviewed = BookFakeDataFactory::createOne(['title' => 'A']);
         BookFakeDataFactory::createOne(['title' => 'B']);
         foreach ([5, 4, 4] as $rating) {
-            BookReviewFakeDataFactory::createOne(['book_id' => $reviewed, 'rating' => $rating]);
+            BookReviewFakeDataFactory::createOne(['book' => $reviewed, 'rating' => $rating]);
         }
 
         $this->client->request('GET', '/books?orderBy=title');
@@ -101,10 +101,10 @@ class BooksControllerTest extends ApiTestCase
         $ddd = BookFakeDataFactory::createOne(['title' => 'Domain-Driven Design', 'genre' => 'Software']);
         $refactoring = BookFakeDataFactory::createOne(['title' => 'Refactoring', 'genre' => 'Software']);
         BookFakeDataFactory::createOne(['title' => 'The Hobbit', 'genre' => 'Fantasy']);
-        BookAuthorFakeDataFactory::createOne(['book_id' => $ddd, 'author_id' => AuthorFakeDataFactory::createOne(['name' => 'Eric Evans'])]);
-        BookAuthorFakeDataFactory::createOne(['book_id' => $refactoring, 'author_id' => AuthorFakeDataFactory::createOne(['name' => 'Martin Fowler'])]);
-        BookReviewFakeDataFactory::createOne(['book_id' => $ddd, 'rating' => 4]);
-        BookReviewFakeDataFactory::createOne(['book_id' => $refactoring, 'rating' => 5]);
+        BookAuthorFakeDataFactory::createOne(['book' => $ddd, 'author' => AuthorFakeDataFactory::createOne(['name' => 'Eric Evans'])]);
+        BookAuthorFakeDataFactory::createOne(['book' => $refactoring, 'author' => AuthorFakeDataFactory::createOne(['name' => 'Martin Fowler'])]);
+        BookReviewFakeDataFactory::createOne(['book' => $ddd, 'rating' => 4]);
+        BookReviewFakeDataFactory::createOne(['book' => $refactoring, 'rating' => 5]);
 
         $this->client->request('GET', '/books?orderBy=title&'.$query);
 
@@ -272,8 +272,8 @@ class BooksControllerTest extends ApiTestCase
     public function testGetReviewsReturnsOnlyThatBooksReviews(): void
     {
         $book = BookFakeDataFactory::createOne();
-        BookReviewFakeDataFactory::createMany(2, ['book_id' => $book]);
-        BookReviewFakeDataFactory::createOne(['book_id' => BookFakeDataFactory::createOne()]);
+        BookReviewFakeDataFactory::createMany(2, ['book' => $book]);
+        BookReviewFakeDataFactory::createOne(['book' => BookFakeDataFactory::createOne()]);
 
         $this->client->request('GET', '/books/'.$book->getId().'/reviews');
 
@@ -346,8 +346,8 @@ class BooksControllerTest extends ApiTestCase
         $this->authenticate(['ROLE_ADMIN']);
         $book = BookFakeDataFactory::createOne(['isbn' => '9780134494166']);
         $kept = AuthorFakeDataFactory::createOne(['name' => 'Robert C. Martin']);
-        BookAuthorFakeDataFactory::createOne(['book_id' => $book, 'author_id' => $kept]);
-        BookAuthorFakeDataFactory::createOne(['book_id' => $book, 'author_id' => AuthorFakeDataFactory::createOne(['name' => 'Dropped'])]);
+        BookAuthorFakeDataFactory::createOne(['book' => $book, 'author' => $kept]);
+        BookAuthorFakeDataFactory::createOne(['book' => $book, 'author' => AuthorFakeDataFactory::createOne(['name' => 'Dropped'])]);
 
         $this->requestJson('PUT', '/books/'.$book->getId(), $this->bookPayload([
             'title' => 'Clean Architecture, 2nd ed.',
@@ -369,7 +369,7 @@ class BooksControllerTest extends ApiTestCase
     {
         $this->authenticate(['ROLE_ADMIN']);
         $book = BookFakeDataFactory::createOne();
-        BookAuthorFakeDataFactory::createOne(['book_id' => $book, 'author_id' => AuthorFakeDataFactory::createOne()]);
+        BookAuthorFakeDataFactory::createOne(['book' => $book, 'author' => AuthorFakeDataFactory::createOne()]);
         $payload = $this->bookPayload();
         unset($payload['authors']);
 
@@ -416,7 +416,7 @@ class BooksControllerTest extends ApiTestCase
     {
         $this->authenticate(['ROLE_ADMIN']);
         $book = BookFakeDataFactory::createOne(['title' => 'Old title', 'genre' => 'Software', 'price' => '10.00']);
-        BookAuthorFakeDataFactory::createOne(['book_id' => $book, 'author_id' => AuthorFakeDataFactory::createOne(['name' => 'Kept'])]);
+        BookAuthorFakeDataFactory::createOne(['book' => $book, 'author' => AuthorFakeDataFactory::createOne(['name' => 'Kept'])]);
 
         $this->requestJson('PATCH', '/books/'.$book->getId(), ['price' => '12.50']);
 
@@ -454,7 +454,7 @@ class BooksControllerTest extends ApiTestCase
     {
         $this->authenticate(['ROLE_ADMIN']);
         $book = BookFakeDataFactory::createOne();
-        BookAuthorFakeDataFactory::createOne(['book_id' => $book, 'author_id' => AuthorFakeDataFactory::createOne(['name' => 'Old'])]);
+        BookAuthorFakeDataFactory::createOne(['book' => $book, 'author' => AuthorFakeDataFactory::createOne(['name' => 'Old'])]);
 
         $this->requestJson('PATCH', '/books/'.$book->getId(), ['authors' => [['name' => 'New', 'info' => null]]]);
 
@@ -507,7 +507,7 @@ class BooksControllerTest extends ApiTestCase
     {
         $this->authenticate(['ROLE_ADMIN']);
         $book = BookFakeDataFactory::createOne();
-        BookReviewFakeDataFactory::createOne(['book_id' => $book]);
+        BookReviewFakeDataFactory::createOne(['book' => $book]);
         $id = $book->getId();
 
         $this->client->request('DELETE', '/books/'.$id);
@@ -524,8 +524,8 @@ class BooksControllerTest extends ApiTestCase
         $book = BookFakeDataFactory::createOne();
         $otherBook = BookFakeDataFactory::createOne();
         $author = AuthorFakeDataFactory::createOne();
-        BookAuthorFakeDataFactory::createOne(['book_id' => $book, 'author_id' => $author]);
-        BookAuthorFakeDataFactory::createOne(['book_id' => $otherBook, 'author_id' => $author]);
+        BookAuthorFakeDataFactory::createOne(['book' => $book, 'author' => $author]);
+        BookAuthorFakeDataFactory::createOne(['book' => $otherBook, 'author' => $author]);
 
         $this->client->request('DELETE', '/books/'.$book->getId());
 

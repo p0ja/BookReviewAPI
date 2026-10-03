@@ -59,11 +59,11 @@ class BookRepository extends ServiceEntityRepository
         }
         // Subqueries rather than joins keep one row per book, so paging stays simple.
         if (null !== $author && '' !== trim($author)) {
-            $qb->andWhere("b.id IN (SELECT IDENTITY(ba.book_id) FROM App\Entity\BookAuthor ba JOIN ba.author_id a WHERE LOWER(a.name) LIKE :author ESCAPE '\\')")
+            $qb->andWhere("b.id IN (SELECT IDENTITY(ba.book) FROM App\Entity\BookAuthor ba JOIN ba.author a WHERE LOWER(a.name) LIKE :author ESCAPE '\\')")
                 ->setParameter('author', self::containsPattern($author));
         }
         if (null !== $authorId) {
-            $qb->andWhere('b.id IN (SELECT IDENTITY(bl.book_id) FROM App\Entity\BookAuthor bl WHERE bl.author_id = :authorId)')
+            $qb->andWhere('b.id IN (SELECT IDENTITY(bl.book) FROM App\Entity\BookAuthor bl WHERE bl.author = :authorId)')
                 ->setParameter('authorId', $authorId);
         }
         if (null !== $minRating) {
@@ -72,7 +72,7 @@ class BookRepository extends ServiceEntityRepository
             // just outside the 0-5 scale keeps the result and rules out INF/NAN in the SQL;
             // %F is locale-independent.
             $qb->andWhere(sprintf(
-                'b.id IN (SELECT IDENTITY(r.book_id) FROM App\Entity\Review r GROUP BY r.book_id HAVING AVG(r.rating) >= %F)',
+                'b.id IN (SELECT IDENTITY(r.book) FROM App\Entity\Review r GROUP BY r.book HAVING AVG(r.rating) >= %F)',
                 max(-1.0, min(6.0, $minRating)),
             ));
         }
@@ -108,7 +108,7 @@ class BookRepository extends ServiceEntityRepository
         $this->createQueryBuilder('b')
             ->select('b', 'ba', 'a')
             ->leftJoin('b.book_authors', 'ba')
-            ->leftJoin('ba.author_id', 'a')
+            ->leftJoin('ba.author', 'a')
             ->andWhere('b IN (:books)')
             ->setParameter('books', $books)
             // Authors in the order they were added, as a lazy load returned them.

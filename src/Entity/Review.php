@@ -30,8 +30,8 @@ class Review
     private ?\DateTimeImmutable $submit_date = null;
 
     #[ORM\ManyToOne(inversedBy: 'reviews')]
-    #[ORM\JoinColumn(nullable: false)]
-    private ?Book $book_id = null;
+    #[ORM\JoinColumn(name: 'book_id', nullable: false)]
+    private ?Book $book = null;
 
     /**
      * Who posted the review; null for reviews from before reviews had owners, and
@@ -101,26 +101,14 @@ class Review
         return $this;
     }
 
-    public function getBookId(): ?Book
-    {
-        return $this->book_id;
-    }
-
-    public function setBookId(?Book $book_id): static
-    {
-        $this->book_id = $book_id;
-
-        return $this;
-    }
-
     public function getBook(): ?Book
     {
-        return $this->book_id;
+        return $this->book;
     }
 
-    public function setBook(?Book $book_id): static
+    public function setBook(?Book $book): static
     {
-        $this->book_id = $book_id;
+        $this->book = $book;
 
         return $this;
     }

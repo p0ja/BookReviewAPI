@@ -28,7 +28,7 @@ final class BookReviewFakeDataFactory extends PersistentProxyObjectFactory
     {
         return [
             'name' => self::faker()->name(),
-            'book_id' => self::faker()->randomElement($this->bookRepository->findAll()),
+            'book' => self::faker()->randomElement($this->bookRepository->findAll()),
             'content' => self::faker()->realText(500),
             'rating' => self::faker()->numberBetween(0, 5),
             'submit_date' => \DateTimeImmutable::createFromMutable(self::faker()->dateTimeBetween('-3 years', 'now')),

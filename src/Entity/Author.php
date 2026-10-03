@@ -25,7 +25,7 @@ class Author
     /**
      * @var Collection<int, BookAuthor>
      */
-    #[ORM\OneToMany(targetEntity: BookAuthor::class, mappedBy: 'author_id')]
+    #[ORM\OneToMany(targetEntity: BookAuthor::class, mappedBy: 'author')]
     #[Ignore]
     private Collection $author_books;
 
