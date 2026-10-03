@@ -18,7 +18,11 @@
   A review can be changed or deleted only by the user who posted it, or by an admin;
   reviews posted before this release have no owner, so only admins can change them.
 - **Errors.** Every error is `{"error": "..."}`, including 401s from login and JWT checks,
-  which were `{"code": 401, "message": "..."}`.
+  which were `{"code": 401, "message": "..."}`. A 422 for an invalid payload has one
+  `field: message` line per problem in `error`, and the same as
+  `"violations": [{"field": "isbn", "message": "..."}]`. A missing or `null` field says
+  `This field is required.` (it said `This value should be of type string.` and hid the
+  other problems of the request).
 - **Book authors.** In a book's `authors`, `id` is now the author's id (usable with
   `/authors/{id}`); it was the id of the internal book-author link.
 - **Validation.** `publish_date` must be a real date (`YYYY-MM-DD`; `""` clears it).
@@ -37,12 +41,15 @@
 - `PUT`/`PATCH` for books and reviews, `GET /reviews/{id}`, `GET /authors`,
   `GET /authors/{id}`, `GET /authors/{id}/books`.
 - `POST /register` (public): creates a `ROLE_USER` account.
+- `PATCH /authors/{id}` (admins): change an author's `name` (unique, in any letter case;
+  409 otherwise) or `info` (`""` clears it).
 - Filters: `title`, `genre`, `author`, `minRating` on `/books`; `rating` on `/reviews`;
   `name` on `/authors`.
 - Books show `average_rating` and `review_count`; reviews show `user_id`.
 - Swagger UI at `/api/doc` (public).
 - CORS for `localhost`/`127.0.0.1` on any port (`CORS_ALLOW_ORIGIN`).
-- Login throttling: 5 failed attempts per email and address per minute, then 429.
+- Login throttling: 5 failed attempts per email and address per minute, then 429 with
+  `Retry-After` (whole minutes, so at most 60 seconds).
 - Registration limit: 10 attempts per address per hour, then 429 with `Retry-After`.
 - Conditional GET: successful `GET`s carry an `ETag` and `Cache-Control: private, no-cache`;
   send it back in `If-None-Match` and an unchanged resource answers `304` with no body.
@@ -51,6 +58,14 @@
 
 - Emails are case-insensitive: login matches any letter case, registration stores them
   in lower case and refuses an address already registered in another case.
+
+### Logging
+
+- Each exception is logged once, by Symfony. The client errors the API answers on purpose
+  (400, 403, 404, 405, 409, 422, 429) are logged at INFO, so they no longer trigger the prod
+  `fingers_crossed` handler or error alerts; anything else stays at ERROR / CRITICAL. They
+  were logged at ERROR, in the `app` channel with a `namespace: kernel_restApi` context;
+  now in the `request` channel as "Uncaught PHP Exception ...".
 
 ### Upgrading a deployment
 

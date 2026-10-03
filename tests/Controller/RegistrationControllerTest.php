@@ -158,4 +158,15 @@ class RegistrationControllerTest extends ApiTestCase
         self::assertStringContainsString($field, $this->responseData()['error']);
         UserFakeDataFactory::assert()->empty();
     }
+
+    public function testRegisteringWithoutAPasswordSaysItIsRequired(): void
+    {
+        $this->requestJson('POST', '/register', ['email' => 'reader@example.com']);
+
+        self::assertResponseStatusCodeSame(Response::HTTP_UNPROCESSABLE_ENTITY);
+        self::assertSame([
+            'error' => 'password: This field is required.',
+            'violations' => [['field' => 'password', 'message' => 'This field is required.']],
+        ], $this->responseData());
+    }
 }

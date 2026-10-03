@@ -6,17 +6,17 @@ namespace App\Dto;
 
 use Symfony\Component\Validator\Constraints as Assert;
 
-class CreateAuthor
+/**
+ * PATCH /authors/{id} (admins): every field is optional, a missing one keeps its
+ * value; an empty info clears it.
+ */
+class UpdateAuthor
 {
     public function __construct(
-        // Stored and matched trimmed (AuthorRepository::findOrCreate()), so checked trimmed.
-        // Nullable so a missing name gets CreateBook::REQUIRED, not a type error.
-        #[Assert\NotNull(message: CreateBook::REQUIRED)]
+        // Stored and matched trimmed, so checked trimmed.
         #[Assert\NotBlank(allowNull: true, normalizer: 'trim')]
-        #[Assert\Type('string')]
         #[Assert\Length(max: 255, normalizer: 'trim')]
         public readonly ?string $name = null,
-        #[Assert\Type('string')]
         #[Assert\Length(max: 255)]
         public readonly ?string $info = null,
     ) {

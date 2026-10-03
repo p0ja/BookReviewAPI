@@ -83,6 +83,9 @@ curl -X PATCH https://localhost/books/{id} -H 'Authorization: Bearer [jwt token]
 # update a review (its author or an admin), same PUT/PATCH rules
 curl -X PATCH https://localhost/reviews/{id} -H 'Authorization: Bearer [jwt token]' -H 'Content-Type: application/json' -d '{"rating":"4"}'
 
+# update an author (admins only): missing fields keep their value, "info": "" clears it; a name another author has (any letter case) answers 409
+curl -X PATCH https://localhost/authors/{id} -H 'Authorization: Bearer [jwt token]' -H 'Content-Type: application/json' -d '{"info":"Author of Clean Code"}'
+
 # delete a book with its reviews (admins only) or a review (its author or an admin)
 curl -X DELETE -H "Authorization: Bearer [jwt token]" https://localhost/books/{id}
 curl -X DELETE -H "Authorization: Bearer [jwt token]" https://localhost/reviews/{id}
@@ -94,6 +97,8 @@ Browsers may call the API from localhost or 127.0.0.1 on any port (CORS); set CO
 # errors
 Every error answers {"error": "..."} with the matching status: 401 (missing, invalid or expired token, wrong password), 403 (not allowed to change it), 404, 409 (an ISBN or email that is already taken), 422 (validation), 429 (too many failed logins or registrations).
 POST /books answers 201 with a Location header pointing at the new book.
+An invalid payload (422) also lists each problem: {"error": "isbn: This field is required.\nprice: ...", "violations": [{"field": "isbn", "message": "This field is required."}, ...]}.
+A throttled login (429) carries Retry-After, like /register.
 
 # caching
 Every successful GET carries an ETag; send it back as If-None-Match and an unchanged resource answers 304 with no body. Responses are private (no-cache: revalidate each time), so a change is visible on the next request.

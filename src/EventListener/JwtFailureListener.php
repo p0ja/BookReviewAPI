@@ -30,16 +30,26 @@ final class JwtFailureListener
             return;
         }
 
-        // Throttled logins get 429 rather than Lexik's 401.
-        $status = $event->getException() instanceof TooManyLoginAttemptsAuthenticationException
-            ? Response::HTTP_TOO_MANY_REQUESTS
-            : $response->getStatusCode();
-
         // Keep the headers, WWW-Authenticate: Bearer among them.
+        $status = $response->getStatusCode();
+        $headers = $response->headers->all();
+
+        // Throttled logins get 429 rather than Lexik's 401, with Retry-After like /register.
+        // The exception only knows the wait in whole minutes, rounded up, so this is the
+        // latest moment a retry is sure to be accepted.
+        $exception = $event->getException();
+        if ($exception instanceof TooManyLoginAttemptsAuthenticationException) {
+            $status = Response::HTTP_TOO_MANY_REQUESTS;
+            $minutes = (int) ($exception->getMessageData()['%minutes%'] ?? 0);
+            if ($minutes > 0) {
+                $headers['Retry-After'] = (string) ($minutes * 60);
+            }
+        }
+
         $event->setResponse(new JsonResponse(
             ['error' => $response->getMessage()],
             $status,
-            $response->headers->all(),
+            $headers,
         ));
     }
 }

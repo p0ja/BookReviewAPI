@@ -41,12 +41,13 @@ class ReviewRepositoryTest extends RepositoryTestCase
         }
     }
 
-    public function testRemoveReviewReportsWhetherAReviewWasDeleted(): void
+    public function testRemoveDeletesTheReview(): void
     {
-        $id = BookReviewFakeDataFactory::createOne(['book' => BookFakeDataFactory::createOne()])->getId();
-        $repository = $this->service(ReviewRepository::class);
+        $review = BookReviewFakeDataFactory::createOne(['book' => BookFakeDataFactory::createOne()]);
+        $id = $review->getId();
 
-        self::assertTrue($repository->removeReview($id));
-        self::assertFalse($repository->removeReview($id));
+        $this->service(ReviewRepository::class)->remove($review->_real());
+
+        BookReviewFakeDataFactory::assert()->notExists(['id' => $id]);
     }
 }

@@ -5,10 +5,7 @@ declare(strict_types=1);
 namespace App\Tests\EventListener;
 
 use App\EventListener\ExceptionListener;
-use App\Logger\LoggerInterface;
-use App\Logger\NamespaceEnum;
 use PHPUnit\Framework\TestCase;
-use Psr\Log\LogLevel;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -19,6 +16,9 @@ use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Symfony\Component\HttpKernel\Exception\UnauthorizedHttpException;
 use Symfony\Component\HttpKernel\Exception\UnprocessableEntityHttpException;
 use Symfony\Component\HttpKernel\HttpKernelInterface;
+use Symfony\Component\Validator\ConstraintViolation;
+use Symfony\Component\Validator\ConstraintViolationList;
+use Symfony\Component\Validator\Exception\ValidationFailedException;
 
 class ExceptionListenerTest extends TestCase
 {
@@ -38,6 +38,29 @@ class ExceptionListenerTest extends TestCase
 
         self::assertSame(Response::HTTP_UNPROCESSABLE_ENTITY, $response->getStatusCode());
         self::assertSame(['error' => 'isbn: This value is too short.'], $this->decode($response));
+    }
+
+    /**
+     * The validator's own text names the DTO class and the constraint codes; the client
+     * gets the field and the message only.
+     */
+    public function testAnInvalidPayloadListsEachViolationByField(): void
+    {
+        $violations = new ConstraintViolationList([
+            new ConstraintViolation('This field is required.', null, [], new \stdClass(), 'isbn', null, null, 'some-code'),
+            new ConstraintViolation('Price must be a decimal number, e.g. 29.99.', null, [], new \stdClass(), 'price', 'abc'),
+        ]);
+
+        $response = $this->handle(new UnprocessableEntityHttpException('ignored', new ValidationFailedException(new \stdClass(), $violations)));
+
+        self::assertSame(Response::HTTP_UNPROCESSABLE_ENTITY, $response->getStatusCode());
+        self::assertSame([
+            'error' => "isbn: This field is required.\nprice: Price must be a decimal number, e.g. 29.99.",
+            'violations' => [
+                ['field' => 'isbn', 'message' => 'This field is required.'],
+                ['field' => 'price', 'message' => 'Price must be a decimal number, e.g. 29.99.'],
+            ],
+        ], $this->decode($response));
     }
 
     public function testValidationFailureWithoutDetailsFallsBackToTheReasonPhrase(): void
@@ -80,19 +103,7 @@ class ExceptionListenerTest extends TestCase
         self::assertSame(['error' => 'Internal server error'], $this->decode($response));
     }
 
-    public function testEveryExceptionIsLoggedAsAnError(): void
-    {
-        $exception = new \LogicException('boom');
-
-        $logger = $this->createMock(LoggerInterface::class);
-        $logger->expects($this->once())
-            ->method('log')
-            ->with(NamespaceEnum::REST_KERNEL->value, 'boom', ['exception' => $exception], LogLevel::ERROR);
-
-        $this->handle($exception, $logger);
-    }
-
-    private function handle(\Throwable $exception, ?LoggerInterface $logger = null): Response
+    private function handle(\Throwable $exception): Response
     {
         $event = new ExceptionEvent(
             self::createStub(HttpKernelInterface::class),
@@ -101,7 +112,7 @@ class ExceptionListenerTest extends TestCase
             $exception,
         );
 
-        (new ExceptionListener($logger ?? self::createStub(LoggerInterface::class)))->onKernelException($event);
+        (new ExceptionListener())->onKernelException($event);
 
         $response = $event->getResponse();
         self::assertInstanceOf(JsonResponse::class, $response);

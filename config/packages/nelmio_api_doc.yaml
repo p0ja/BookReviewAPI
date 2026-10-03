@@ -82,6 +82,14 @@ nelmio_api_doc:
                     type: object
                     properties:
                         error: { type: string, example: Resource with such id does not exists }
+                        violations:
+                            type: array
+                            description: 'Only on a 422 for an invalid payload: each violation, also listed one per line in error'
+                            items:
+                                type: object
+                                properties:
+                                    field: { type: string, example: isbn }
+                                    message: { type: string, example: This field is required. }
                 DeleteResult:
                     type: object
                     properties:

@@ -56,14 +56,18 @@ final class RegistrationController extends AbstractController
             throw new TooManyRequestsHttpException(max(1, $limit->getRetryAfter()->getTimestamp() - time()));
         }
 
+        // RegisterUser is validated before, so both are set.
+        $email = $registration->email ?? throw new \LogicException('RegisterUser without an email');
+        $password = $registration->password ?? throw new \LogicException('RegisterUser without a password');
+
         // Lower case, so an address has one account however it is typed.
-        $email = mb_strtolower(trim($registration->email));
+        $email = mb_strtolower(trim($email));
         if ($this->userRepository->emailExists($email)) {
             throw new ConflictHttpException(self::EMAIL_TAKEN_MSG);
         }
 
         $user = (new User())->setEmail($email)->setRoles(['ROLE_USER']);
-        $user->setPassword($this->passwordHasher->hashPassword($user, $registration->password));
+        $user->setPassword($this->passwordHasher->hashPassword($user, $password));
 
         try {
             $this->userRepository->create($user);
