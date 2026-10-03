@@ -53,10 +53,19 @@ trait PaginatesResults
     }
 
     /**
-     * A LIKE pattern matching $term anywhere, with LIKE's own wildcards taken literally.
+     * A LIKE pattern matching $term anywhere, with LIKE's own wildcards taken literally;
+     * use it with ESCAPE '!'.
+     *
+     * Not a backslash: PDO's PostgreSQL driver reads a backslash in a quoted literal as
+     * an escape, so ESCAPE '\' hid the next placeholder and two filters at once (title
+     * and author) failed with "parameter was not defined".
+     *
+     * Not lowercased here: compare with LOWER(column) LIKE LOWER(:pattern), so both sides
+     * are lowercased alike. PHP's mb_strtolower() and PostgreSQL's LOWER() differ for
+     * some letters ("İ"), and a search for such a name found nothing.
      */
     private static function containsPattern(string $term): string
     {
-        return '%'.addcslashes(mb_strtolower(trim($term)), '%_\\').'%';
+        return '%'.strtr(trim($term), ['!' => '!!', '%' => '!%', '_' => '!_']).'%';
     }
 }

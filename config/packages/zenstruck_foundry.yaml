@@ -13,4 +13,14 @@ when@dev: &dev
     #        autowire: true
     #        autoconfigure: true
 
-when@test: *dev
+when@test:
+    zenstruck_foundry:
+        persistence:
+            flush_once: true
+        orm:
+            reset:
+                # The test database is built by the migrations, not from the mapping: the
+                # expression indexes (uniq_author_name_lower, idx_users_email_lower) exist
+                # only in migrations, and without them the tests missed that an author
+                # lookup could disagree with the unique index.
+                mode: migrate

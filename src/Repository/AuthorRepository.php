@@ -109,7 +109,7 @@ class AuthorRepository extends ServiceEntityRepository
     {
         $qb = $this->createQueryBuilder('a');
         if (null !== $name && '' !== trim($name)) {
-            $qb->andWhere("LOWER(a.name) LIKE :name ESCAPE '\\'")
+            $qb->andWhere("LOWER(a.name) LIKE LOWER(:name) ESCAPE '!'")
                 ->setParameter('name', self::containsPattern($name));
         }
         if (in_array($orderBy, ConfigData::AUTHOR_SORTING_COLUMNS, true)) {
@@ -127,12 +127,17 @@ class AuthorRepository extends ServiceEntityRepository
     /**
      * Served by the uniq_author_name_lower index (migration Version20261003110000),
      * which also keeps two requests from creating the same author twice.
+     *
+     * Both sides are lowercased by the database, as the index is: PHP's mb_strtolower()
+     * differs from PostgreSQL's LOWER() for some letters ("İ" gives "i" plus a combining
+     * dot in PHP, "i" in PostgreSQL), and a lookup that misses an author the index then
+     * refuses to insert again answered every later book with 409.
      */
     private function findOneByNameIgnoringCase(string $name): ?Author
     {
         return $this->createQueryBuilder('a')
-            ->andWhere('LOWER(a.name) = :name')
-            ->setParameter('name', mb_strtolower($name))
+            ->andWhere('LOWER(a.name) = LOWER(:name)')
+            ->setParameter('name', $name)
             ->orderBy('a.id')
             ->setMaxResults(1)
             ->getQuery()

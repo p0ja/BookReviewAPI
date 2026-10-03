@@ -66,6 +66,10 @@ class UserRepository extends ServiceEntityRepository implements PasswordUpgrader
 
     /**
      * Served by the idx_users_email_lower index (migration Version20260927125000).
+     *
+     * Unlike author names, the parameter is lowercased by PHP, not LOWER(:email): that
+     * is how registration stores emails, and the two differ for some letters ("İ"). The
+     * index is not unique, so a difference cannot turn into a refused insert.
      */
     private function findOneByEmailIgnoringCase(string $email): ?User
     {
