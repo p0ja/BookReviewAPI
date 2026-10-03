@@ -1,0 +1,38 @@
+# Kept out of the build context, so the prod stage's `COPY . ./` cannot overwrite the
+# --no-dev vendors or bake local secrets into the image (`composer dump-env prod`
+# would compile .env.local into .env.local.php).
+**/*.log
+**/*.md
+**/*.php~
+**/*.dist.php
+**/*.cache
+**/._*
+**/.dockerignore
+**/.DS_Store
+**/.git/
+**/.gitattributes
+**/.gitignore
+**/.gitmodules
+**/compose.*.yaml
+**/compose.yaml
+**/Dockerfile
+**/Thumbs.db
+**/*:Zone.Identifier
+.editorconfig
+.githooks/
+.github/
+.idea/
+.phpunit.cache/
+.vscode/
+public/bundles/
+tests/
+var/
+vendor/
+
+# Secrets: provide them at runtime (environment variables, mounted keys)
+.env.local
+.env.*.local
+.env.local.php
+.env.test
+config/jwt/*.pem
+config/secrets/prod/prod.decrypt.private.php

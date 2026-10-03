@@ -30,3 +30,10 @@ services:
     App\Logger\Logger:
         arguments:
             $logger: '@monolog.logger'
+
+when@test:
+    services:
+        # Issues test tokens in the past, so WSL2 clock steps cannot put "iat" in the future.
+        App\Tests\BackdateTokensListener:
+            tags:
+                - { name: kernel.event_listener, event: lexik_jwt_authentication.on_jwt_created }

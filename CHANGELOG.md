@@ -50,6 +50,10 @@
 3. Rebuild the Docker image (`docker compose up -d --build`): the Mercure hub was removed, and
    the application now runs on Symfony 7.4 LTS (from 7.2), which fixes the security advisories
    open against 7.2; run `composer install` on deployments that do not build the image.
+5. The prod image no longer contains `.env.local`, the JWT keys, dev packages or tests
+   (a `.dockerignore` was missing, so `COPY . ./` took the whole checkout). Pass `APP_SECRET`,
+   `JWT_PASSPHRASE` and `DATABASE_URL` as environment variables and mount `config/jwt/`;
+   see "production image" in the README.
 4. Run the migrations. One of them converts `price`, `publish_date` and `description`, and
    stops without changing anything if a price is above 99999999.99 or a publish date is
    not `YYYY-MM-DD`; fix those rows first. It also removes duplicate book-author links.

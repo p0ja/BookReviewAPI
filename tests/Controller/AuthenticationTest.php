@@ -6,6 +6,8 @@ namespace App\Tests\Controller;
 
 use App\Factory\UserFakeDataFactory;
 use App\Tests\ApiTestCase;
+use App\Tests\BackdateTokensListener;
+use Lexik\Bundle\JWTAuthenticationBundle\Services\JWTTokenManagerInterface;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Symfony\Component\HttpFoundation\Response;
 
@@ -23,6 +25,26 @@ class AuthenticationTest extends ApiTestCase
 
         $this->client->request('GET', '/books', server: ['HTTP_AUTHORIZATION' => 'Bearer '.$token]);
 
+        self::assertResponseIsSuccessful();
+    }
+
+    /**
+     * Under WSL2 the wall clock briefly runs about a minute ahead; a token issued then
+     * used to be rejected by the next request. BackdateTokensListener issues every test
+     * token in the past, while it still expires a full TTL from now.
+     */
+    public function testATokenIssuedWhileTheClockRanAheadIsAccepted(): void
+    {
+        $user = UserFakeDataFactory::createOne()->_real();
+        $manager = static::getContainer()->get(JWTTokenManagerInterface::class);
+
+        $token = $manager->createFromPayload($user, ['iat' => time() + 64]);
+
+        $payload = $manager->parse($token);
+        self::assertLessThanOrEqual(time() - BackdateTokensListener::BACKDATE_SECONDS, $payload['iat']);
+        self::assertGreaterThan(time() + 3500, $payload['exp']);
+
+        $this->client->request('GET', '/books', server: ['HTTP_AUTHORIZATION' => 'Bearer '.$token]);
         self::assertResponseIsSuccessful();
     }
 
