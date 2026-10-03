@@ -40,9 +40,11 @@ class AuthenticationTest extends ApiTestCase
 
         $token = $manager->createFromPayload($user, ['iat' => time() + 64]);
 
+        // Compared with each other, not with time(): the clock may step between issuing
+        // the token and asserting, which is what this test is about. The listener and
+        // Lexik read the clock a moment apart, hence the second of slack.
         $payload = $manager->parse($token);
-        self::assertLessThanOrEqual(time() - BackdateTokensListener::BACKDATE_SECONDS, $payload['iat']);
-        self::assertGreaterThan(time() + 3500, $payload['exp']);
+        self::assertGreaterThanOrEqual(3600 + BackdateTokensListener::BACKDATE_SECONDS - 1, $payload['exp'] - $payload['iat']);
 
         $this->client->request('GET', '/books', server: ['HTTP_AUTHORIZATION' => 'Bearer '.$token]);
         self::assertResponseIsSuccessful();

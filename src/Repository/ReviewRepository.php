@@ -30,18 +30,6 @@ class ReviewRepository extends ServiceEntityRepository
         parent::__construct($registry, Review::class);
     }
 
-    /**
-     * @return list<Review>
-     */
-    public function findByBookId(int $id): array
-    {
-        return $this->createQueryBuilder('b')
-            ->andWhere('b.book = :val')
-            ->setParameter('val', $id)
-            ->getQuery()
-            ->getResult();
-    }
-
     public function create(Book $book, CreateReview $reviewPost, ?User $user = null): Review
     {
         $submitDate = new \DateTimeImmutable('now');
@@ -92,9 +80,11 @@ class ReviewRepository extends ServiceEntityRepository
     }
 
     /**
+     * @param int|null $bookId only the reviews of this book
+     *
      * @return Page<Review>
      */
-    public function findReviews(?int $page, ?int $size, ?string $orderBy, ?int $rating = null): Page
+    public function findReviews(?int $page, ?int $size, ?string $orderBy, ?int $rating = null, ?int $bookId = null): Page
     {
         // The book comes with each review (its title is in the output), in the same query.
         // A many-to-one join adds no rows, so paging stays exact.
@@ -103,6 +93,9 @@ class ReviewRepository extends ServiceEntityRepository
             ->innerJoin('b.book', 'book');
         if (null !== $rating) {
             $qb->andWhere('b.rating = :rating')->setParameter('rating', $rating);
+        }
+        if (null !== $bookId) {
+            $qb->andWhere('b.book = :book')->setParameter('book', $bookId);
         }
         if (in_array($orderBy, ConfigData::REVIEW_SORTING_COLUMNS, true)) {
             $qb->orderBy('b.'.$orderBy);

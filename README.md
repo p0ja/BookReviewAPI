@@ -48,7 +48,7 @@ After 5 failed logins for an email from one address within a minute, /login_chec
 curl -X POST -H "Content-Type: application/json" https://localhost/login_check -d '{"username":"user@example.com","password":"user"}'
 
 # requests
-# lists (/books, /reviews, /authors, /authors/{id}/books) answer one page: {"items": [...], "total": 42, "page": 1, "size": 20}
+# lists (/books, /reviews, /books/{id}/reviews, /authors, /authors/{id}/books) answer one page: {"items": [...], "total": 42, "page": 1, "size": 20}
 # pagination and sorting are query parameters (page, size, orderBy); size defaults to 20 and is capped at 100; a malformed value answers 400
 # books have average_rating (null without reviews) and review_count
 curl -X GET -H "Authorization: Bearer [jwt token]" 'https://localhost/books?page=1&size=20&orderBy=title'
@@ -59,8 +59,8 @@ curl -X GET -H "Authorization: Bearer [jwt token]" 'https://localhost/books?titl
 # single book
 curl -X GET -H "Authorization: Bearer [jwt token]" https://localhost/books/{id}
 
-# reviews of a book
-curl -X GET -H "Authorization: Bearer [jwt token]" https://localhost/books/{id}/reviews
+# reviews of a book (one page, same parameters as /reviews)
+curl -X GET -H "Authorization: Bearer [jwt token]" 'https://localhost/books/{id}/reviews?page=1&size=20&orderBy=rating'
 
 # list reviews (rating keeps only reviews with that rating), single review
 curl -X GET -H "Authorization: Bearer [jwt token]" 'https://localhost/reviews?page=1&size=20&orderBy=rating&rating=5'
@@ -71,7 +71,7 @@ curl -X GET -H "Authorization: Bearer [jwt token]" 'https://localhost/authors?na
 curl -X GET -H "Authorization: Bearer [jwt token]" https://localhost/authors/{id}
 curl -X GET -H "Authorization: Bearer [jwt token]" https://localhost/authors/{id}/books
 
-# create book
+# create book (authors are matched by name, trimmed and in any letter case; an existing author keeps its info, which only admins change, through PUT/PATCH)
 curl -v -X POST http://127.0.0.1:8000/books -H 'Authorization: Bearer [jwt token]' -H 'Content-Type: application/json' -d '{"title":"nowy title","isbn":"nowyIsbn0123","description":"book description","price":"123.14","genre":"PHP","publish_date":"2023-12-12","authors":[{"name":"author1 name and surname","info":"information about author"},{"name":"author2 name","info":"information about author"}]}'
 
 # create review
@@ -104,6 +104,7 @@ The prod stage holds no secrets (.dockerignore keeps .env.local and config/jwt/*
 docker build --target frankenphp_prod -t bookreviewapi:prod .
 (The Dockerfile needs BuildKit: install the docker buildx plugin, or build through compose with a file that sets build.target: frankenphp_prod.)
 docker run -d -p 443:443 -e SERVER_NAME=your.domain -e APP_SECRET=... -e JWT_PASSPHRASE=... -e DATABASE_URL=... -v /path/to/jwt:/app/config/jwt:ro bookreviewapi:prod
+Behind a load balancer or reverse proxy, also pass -e SYMFONY_TRUSTED_PROXIES=<its addresses, or private_ranges>: otherwise every client has the proxy's address, and the per-address limits on /register and /login_check apply to all of them together.
 
 # static analysis
 PHPStan (level 6, config in phpstan.dist.neon) checks src and tests; CI runs it too:

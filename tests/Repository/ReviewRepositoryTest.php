@@ -27,16 +27,16 @@ class ReviewRepositoryTest extends RepositoryTestCase
         self::assertGreaterThanOrEqual($before, $review->getSubmitDate());
     }
 
-    public function testFindByBookIdReturnsOnlyThatBooksReviews(): void
+    public function testFindReviewsOfABookReturnsOnlyThatBooksReviews(): void
     {
         $book = BookFakeDataFactory::createOne();
         BookReviewFakeDataFactory::createMany(2, ['book' => $book]);
         BookReviewFakeDataFactory::createOne(['book' => BookFakeDataFactory::createOne()]);
 
-        $reviews = $this->service(ReviewRepository::class)->findByBookId($book->getId());
+        $reviews = $this->service(ReviewRepository::class)->findReviews(null, null, null, bookId: $book->getId());
 
-        self::assertCount(2, $reviews);
-        foreach ($reviews as $review) {
+        self::assertSame(2, $reviews->total);
+        foreach ($reviews->items as $review) {
             self::assertSame($book->getId(), $review->getBook()->getId());
         }
     }

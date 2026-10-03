@@ -12,16 +12,37 @@ use App\Repository\BookAuthorRepository;
 
 class AuthorRepositoryTest extends RepositoryTestCase
 {
-    public function testCreateAuthorReusesAnAuthorWithTheSameName(): void
+    public function testFindOrCreateReusesAnAuthorWhateverTheCaseAndSpacing(): void
     {
         $repository = $this->service(AuthorRepository::class);
 
-        $first = $repository->createAuthor(new CreateAuthor('Martin Fowler'));
-        $second = $repository->createAuthor(new CreateAuthor('Martin Fowler', 'Chief Scientist'));
+        $first = $repository->findOrCreate(new CreateAuthor('  Martin Fowler '));
+        $second = $repository->findOrCreate(new CreateAuthor('martin FOWLER'));
 
         self::assertSame($first->getId(), $second->getId());
-        self::assertSame('Chief Scientist', $second->getInfo());
+        self::assertSame('Martin Fowler', $first->getName());
         AuthorFakeDataFactory::assert()->count(1);
+    }
+
+    /**
+     * Anyone may create a book, and authors are shared by every book.
+     */
+    public function testFindOrCreateLeavesAnExistingAuthorsInfoAlone(): void
+    {
+        $repository = $this->service(AuthorRepository::class);
+        $repository->findOrCreate(new CreateAuthor('Martin Fowler', 'Chief Scientist'));
+
+        self::assertSame('Chief Scientist', $repository->findOrCreate(new CreateAuthor('Martin Fowler'))->getInfo());
+        self::assertSame('Chief Scientist', $repository->findOrCreate(new CreateAuthor('Martin Fowler', 'Vandal'))->getInfo());
+    }
+
+    public function testFindOrCreateUpdatesTheInfoOnlyWhenAllowedAndGiven(): void
+    {
+        $repository = $this->service(AuthorRepository::class);
+        $repository->findOrCreate(new CreateAuthor('Martin Fowler', 'Chief Scientist'));
+
+        self::assertSame('Chief Scientist', $repository->findOrCreate(new CreateAuthor('Martin Fowler'), updateInfo: true)->getInfo());
+        self::assertSame('Author of Refactoring', $repository->findOrCreate(new CreateAuthor('Martin Fowler', 'Author of Refactoring'), updateInfo: true)->getInfo());
     }
 
     public function testCreateBookAuthorDoesNotDuplicateAnExistingLink(): void

@@ -9,9 +9,10 @@ use Symfony\Component\Validator\Constraints as Assert;
 class CreateAuthor
 {
     public function __construct(
-        #[Assert\NotBlank]
+        // Stored and matched trimmed (AuthorRepository::findOrCreate()), so checked trimmed.
+        #[Assert\NotBlank(normalizer: 'trim')]
         #[Assert\Type('string')]
-        #[Assert\Length(max: 255)]
+        #[Assert\Length(max: 255, normalizer: 'trim')]
         public readonly string $name,
         #[Assert\Type('string')]
         #[Assert\Length(max: 255)]

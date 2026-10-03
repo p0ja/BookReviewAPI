@@ -8,6 +8,7 @@ use App\Dto\CreateBook;
 use App\Dto\CreateReview;
 use App\Dto\UpdateBook;
 use App\Entity\User;
+use App\Exception\ConcurrentWriteException;
 use App\Exception\IsbnTakenException;
 use App\Logger\LoggerInterface;
 use App\Logger\NamespaceEnum;
@@ -88,21 +89,21 @@ final class BooksController extends AbstractController
         return $this->json($this->bookData->getOne($book), Response::HTTP_OK);
     }
 
-    #[OA\Post(summary: 'Create a book with its authors', description: 'Authors are matched by name and created when missing.')]
+    #[OA\Post(summary: 'Create a book with its authors', description: 'Authors are matched by name (trimmed, any letter case) and created when missing; an existing author is linked as it is, its info unchanged.')]
     #[OA\Response(
         response: 201,
         description: 'The created book',
         headers: [new OA\Header(header: 'Location', description: 'URL of the new book', schema: new OA\Schema(type: 'string'))],
         content: new OA\JsonContent(ref: '#/components/schemas/Book'),
     )]
-    #[OA\Response(response: 409, description: 'A book with this ISBN already exists', content: new OA\JsonContent(ref: '#/components/schemas/Error'))]
+    #[OA\Response(response: 409, description: 'A book with this ISBN already exists, or a simultaneous request created the same author (retry)', content: new OA\JsonContent(ref: '#/components/schemas/Error'))]
     #[OA\Response(response: 422, description: 'Invalid payload', content: new OA\JsonContent(ref: '#/components/schemas/Error'))]
     #[Route('/books', name: 'book_create', methods: ['POST'])]
     public function create(#[MapRequestPayload] CreateBook $bookPost): Response
     {
         try {
             $book = $this->bookWriter->create($bookPost);
-        } catch (IsbnTakenException $e) {
+        } catch (IsbnTakenException|ConcurrentWriteException $e) {
             throw new ConflictHttpException($e->getMessage(), $e);
         }
 
@@ -111,7 +112,7 @@ final class BooksController extends AbstractController
         ]);
     }
 
-    #[OA\Put(summary: 'Replace a book', description: 'Admins only. Every field is set, and the authors are replaced by the given list (none when it is missing).')]
+    #[OA\Put(summary: 'Replace a book', description: 'Admins only. Every field is set, and the authors are replaced by the given list (none when it is missing); an existing author given with an info gets that info.')]
     #[OA\Response(
         response: 200,
         description: 'The updated book',
@@ -128,7 +129,7 @@ final class BooksController extends AbstractController
         return $this->update($id, $bookPut);
     }
 
-    #[OA\Patch(summary: 'Update some fields of a book', description: 'Admins only. Missing fields keep their value; authors, when given, replace all the authors.')]
+    #[OA\Patch(summary: 'Update some fields of a book', description: 'Admins only. Missing fields keep their value; authors, when given, replace all the authors, and an existing author given with an info gets that info.')]
     #[OA\Response(
         response: 200,
         description: 'The updated book',
@@ -145,34 +146,25 @@ final class BooksController extends AbstractController
         return $this->update($id, $bookPatch);
     }
 
-    #[OA\Get(summary: 'List the reviews of a book', description: 'An unknown book gives an empty list.')]
+    #[OA\Get(summary: 'List the reviews of a book', description: 'Paginated, sorted and filtered like GET /reviews. An unknown book gives an empty page.')]
     #[OA\Response(
         response: 200,
-        description: 'Reviews',
-        content: new OA\JsonContent(type: 'array', items: new OA\Items(ref: '#/components/schemas/Review')),
+        description: 'One page of the reviews of the book',
+        content: new OA\JsonContent(ref: '#/components/schemas/ReviewPage'),
     )]
+    #[OA\Response(response: 400, description: 'Malformed page or size', content: new OA\JsonContent(ref: '#/components/schemas/Error'))]
     #[Route('/books/{id}/reviews', name: 'rest_book_reviews', requirements: ['id' => '\d+'], methods: ['GET'])]
-    public function getReviews(int $id): Response
-    {
-        $reviews = $this->reviewRepository->findByBookId($id);
-        if (!$reviews) {
-            $this->logger->log(
-                NamespaceEnum::REST_BOOK->value,
-                'Reviews not found',
-                [
-                    'book_id' => $id,
-                ]
-            );
+    public function getReviews(
+        int $id,
+        #[MapQueryParameter(validationFailedStatusCode: Response::HTTP_BAD_REQUEST)] ?int $page = null,
+        #[MapQueryParameter(validationFailedStatusCode: Response::HTTP_BAD_REQUEST)] ?int $size = null,
+        #[MapQueryParameter(validationFailedStatusCode: Response::HTTP_BAD_REQUEST)] ?string $orderBy = null,
+        #[MapQueryParameter(validationFailedStatusCode: Response::HTTP_BAD_REQUEST)] ?int $rating = null,
+    ): Response {
+        // A page like every other list: a book's reviews can grow without bound.
+        $reviews = $this->reviewRepository->findReviews($page, $size, $orderBy, $rating, bookId: $id);
 
-            return $this->json([]);
-        }
-
-        $reviewsData = [];
-        foreach ($reviews as $review) {
-            $reviewsData[] = $this->reviewData->getOutput($review);
-        }
-
-        return $this->json($reviewsData, Response::HTTP_OK);
+        return $this->json($reviews->toArray($this->reviewData->getOutput(...)), Response::HTTP_OK);
     }
 
     #[OA\Post(summary: 'Add a review to a book')]
@@ -229,7 +221,7 @@ final class BooksController extends AbstractController
 
         try {
             $book = $this->bookWriter->update($book, $data);
-        } catch (IsbnTakenException $e) {
+        } catch (IsbnTakenException|ConcurrentWriteException $e) {
             throw new ConflictHttpException($e->getMessage(), $e);
         }
 

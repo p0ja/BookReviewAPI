@@ -13,11 +13,11 @@ use Symfony\Component\Validator\Constraints as Assert;
 class UpdateBook
 {
     public function __construct(
-        #[Assert\NotBlank(allowNull: true)]
-        #[Assert\Length(max: 255)]
+        #[Assert\NotBlank(allowNull: true, normalizer: 'trim')]
+        #[Assert\Length(max: 255, normalizer: 'trim')]
         public readonly ?string $title = null,
-        #[Assert\NotBlank(allowNull: true)]
-        #[Assert\Length(min: 10, max: 13)]
+        #[Assert\NotBlank(allowNull: true, normalizer: 'trim')]
+        #[Assert\Length(min: 10, max: 13, normalizer: 'trim')]
         public readonly ?string $isbn = null,
         #[Assert\Length(max: 10000)]
         public readonly ?string $description = null,
@@ -29,7 +29,7 @@ class UpdateBook
             new Assert\LessThanOrEqual(99999999.99),
         ])]
         public readonly ?string $price = null,
-        #[Assert\Length(max: 255)]
+        #[Assert\Length(max: 255, normalizer: 'trim')]
         public readonly ?string $genre = null,
         #[Assert\Date(message: 'Publish date must be a date in the form YYYY-MM-DD.')]
         public readonly ?string $publish_date = null,

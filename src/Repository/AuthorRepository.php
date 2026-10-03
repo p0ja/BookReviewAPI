@@ -27,15 +27,23 @@ class AuthorRepository extends ServiceEntityRepository
         parent::__construct($registry, Author::class);
     }
 
-    public function createAuthor(CreateAuthor $authorData): Author
+    /**
+     * The author with this name, matched trimmed and in any letter case; created when
+     * there is none.
+     *
+     * Authors are shared by every book, and anyone may create a book, so an existing
+     * author's info changes only when $updateInfo allows it (admins editing a book) and
+     * a new info is given: leaving it out never wipes it.
+     */
+    public function findOrCreate(CreateAuthor $authorData, bool $updateInfo = false): Author
     {
-        if ($this->authorExists($authorData->name)) {
-            $author = $this->findOneBy(['name' => $authorData->name]);
-        } else {
-            $author = new Author();
+        $name = trim($authorData->name);
+        $author = $this->findOneByNameIgnoringCase($name);
+        if (null !== $author && (!$updateInfo || null === $authorData->info)) {
+            return $author;
         }
 
-        $author->setName($authorData->name);
+        $author ??= (new Author())->setName($name);
         $author->setInfo($authorData->info);
 
         try {
@@ -48,7 +56,7 @@ class AuthorRepository extends ServiceEntityRepository
                 $e->getMessage(),
                 [
                     'exception' => $e,
-                    'book' => $author,
+                    'author' => $author,
                 ],
                 LogLevel::ERROR,
             );
@@ -83,15 +91,18 @@ class AuthorRepository extends ServiceEntityRepository
         return $result;
     }
 
-    private function authorExists(string $name): bool
+    /**
+     * Served by the uniq_author_name_lower index (migration Version20261003110000),
+     * which also keeps two requests from creating the same author twice.
+     */
+    private function findOneByNameIgnoringCase(string $name): ?Author
     {
-        $authorCheck = $this->createQueryBuilder('b')
-            ->andWhere('b.name = :val')
-            ->setParameter('val', $name)
+        return $this->createQueryBuilder('a')
+            ->andWhere('LOWER(a.name) = :name')
+            ->setParameter('name', mb_strtolower($name))
+            ->orderBy('a.id')
             ->setMaxResults(1)
             ->getQuery()
-            ->getResult();
-
-        return (bool) $authorCheck;
+            ->getOneOrNullResult();
     }
 }

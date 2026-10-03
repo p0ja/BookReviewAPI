@@ -11,6 +11,8 @@ use App\Factory\BookFakeDataFactory;
 use App\Factory\BookReviewFakeDataFactory;
 use App\Repository\BookAuthorRepository;
 use App\Tests\ApiTestCase;
+use Doctrine\DBAL\Driver\Exception as DriverException;
+use Doctrine\DBAL\Exception\UniqueConstraintViolationException;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\EntityManagerInterface;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -263,6 +265,24 @@ class BooksControllerTest extends ApiTestCase
         AuthorFakeDataFactory::assert()->empty();
     }
 
+    /**
+     * A simultaneous request wrote the same unique row first (a new author's name, a
+     * book-author link): the client is told to retry rather than getting a 500.
+     */
+    public function testCreateRacingAnotherRequestIsAConflict(): void
+    {
+        $bookAuthorRepository = self::createStub(BookAuthorRepository::class);
+        $bookAuthorRepository->method('createBookAuthor')
+            ->willThrowException(new UniqueConstraintViolationException(self::createStub(DriverException::class), null));
+        static::getContainer()->set(BookAuthorRepository::class, $bookAuthorRepository);
+
+        $this->requestJson('POST', '/books', $this->bookPayload());
+
+        self::assertResponseStatusCodeSame(Response::HTTP_CONFLICT);
+        self::assertStringContainsString('try again', $this->responseData()['error']);
+        BookFakeDataFactory::assert()->empty();
+    }
+
     public function testCreateRejectsANonNumericPrice(): void
     {
         $this->requestJson('POST', '/books', $this->bookPayload(['price' => 'abc']));
@@ -282,18 +302,40 @@ class BooksControllerTest extends ApiTestCase
 
         self::assertResponseIsSuccessful();
         $data = $this->responseData();
-        self::assertCount(2, $data);
-        self::assertSame([$book->getId(), $book->getId()], array_column($data, 'book_id'));
+        self::assertSame(2, $data['total']);
+        self::assertSame([$book->getId(), $book->getId()], array_column($data['items'], 'book_id'));
     }
 
-    public function testGetReviewsOfABookWithoutReviewsIsAnEmptyList(): void
+    public function testGetReviewsOfABookWithoutReviewsIsAnEmptyPage(): void
     {
         $book = BookFakeDataFactory::createOne();
 
         $this->client->request('GET', '/books/'.$book->getId().'/reviews');
 
         self::assertResponseIsSuccessful();
-        self::assertSame([], $this->responseData());
+        self::assertSame(['items' => [], 'total' => 0, 'page' => 1, 'size' => 20], $this->responseData());
+    }
+
+    /**
+     * A book's reviews grow without bound, so they are paged like every other list.
+     */
+    public function testGetReviewsIsPaged(): void
+    {
+        $book = BookFakeDataFactory::createOne();
+        foreach ([5, 1, 3] as $rating) {
+            BookReviewFakeDataFactory::createOne(['book' => $book, 'rating' => $rating]);
+        }
+
+        $this->client->request('GET', '/books/'.$book->getId().'/reviews?size=2&page=2&orderBy=rating');
+
+        self::assertResponseIsSuccessful();
+        $data = $this->responseData();
+        self::assertSame(3, $data['total']);
+        self::assertSame(2, $data['page']);
+        self::assertSame([5], array_column($data['items'], 'rating'));
+
+        $this->client->request('GET', '/books/'.$book->getId().'/reviews?size=1000');
+        self::assertSame(100, $this->responseData()['size']);
     }
 
     public function testCreateReviewAddsItToTheBook(): void
@@ -321,6 +363,16 @@ class BooksControllerTest extends ApiTestCase
         $book = BookFakeDataFactory::createOne();
 
         $this->requestJson('POST', '/books/'.$book->getId().'/reviews', ['name' => 'Jane', 'content' => 'ok', 'rating' => '4']);
+
+        self::assertResponseStatusCodeSame(Response::HTTP_UNPROCESSABLE_ENTITY);
+        BookReviewFakeDataFactory::assert()->empty();
+    }
+
+    public function testCreateReviewChecksTheLengthOfTheTrimmedContent(): void
+    {
+        $book = BookFakeDataFactory::createOne();
+
+        $this->requestJson('POST', '/books/'.$book->getId().'/reviews', ['name' => 'Jane', 'content' => '   a', 'rating' => '4']);
 
         self::assertResponseStatusCodeSame(Response::HTTP_UNPROCESSABLE_ENTITY);
         BookReviewFakeDataFactory::assert()->empty();
@@ -571,6 +623,63 @@ class BooksControllerTest extends ApiTestCase
         $this->client->request('DELETE', '/books/999999');
 
         self::assertResponseStatusCodeSame(Response::HTTP_NOT_FOUND);
+    }
+
+    /**
+     * The values are stored trimmed, so they must be valid trimmed.
+     *
+     * @param array<string, mixed> $field
+     */
+    #[DataProvider('blankOnceTrimmed')]
+    public function testCreateChecksTheTrimmedValues(array $field): void
+    {
+        $this->requestJson('POST', '/books', $this->bookPayload($field));
+
+        self::assertResponseStatusCodeSame(Response::HTTP_UNPROCESSABLE_ENTITY);
+        BookFakeDataFactory::assert()->empty();
+    }
+
+    /**
+     * @return iterable<string, array{array<string, mixed>}>
+     */
+    public static function blankOnceTrimmed(): iterable
+    {
+        yield 'title of spaces' => [['title' => '   ']];
+        yield 'isbn short once trimmed' => [['isbn' => '  CRPRB03 ']];
+        yield 'author name of spaces' => [['authors' => [['name' => '   ']]]];
+    }
+
+    /**
+     * Anyone may create a book, while authors are shared by every book: an existing
+     * author is linked as it is.
+     */
+    public function testCreateDoesNotChangeAnExistingAuthor(): void
+    {
+        $author = AuthorFakeDataFactory::createOne(['name' => 'Robert C. Martin', 'info' => 'Uncle Bob']);
+
+        $this->requestJson('POST', '/books', $this->bookPayload(['authors' => [['name' => ' robert c. martin ']]]));
+        self::assertResponseStatusCodeSame(Response::HTTP_CREATED);
+        $this->requestJson('POST', '/books', $this->bookPayload(['isbn' => '9780134494167', 'authors' => [['name' => 'Robert C. Martin', 'info' => 'Vandal']]]));
+        self::assertResponseStatusCodeSame(Response::HTTP_CREATED);
+
+        AuthorFakeDataFactory::assert()->count(1);
+        self::assertSame('Uncle Bob', $author->_refresh()->getInfo());
+        self::assertSame('Robert C. Martin', $author->getName());
+    }
+
+    public function testAdminsChangeAnAuthorsInfoByGivingIt(): void
+    {
+        $this->authenticate(['ROLE_ADMIN']);
+        $book = BookFakeDataFactory::createOne();
+        $author = AuthorFakeDataFactory::createOne(['name' => 'Robert C. Martin', 'info' => 'Uncle Bob']);
+
+        $this->requestJson('PATCH', '/books/'.$book->getId(), ['authors' => [['name' => 'Robert C. Martin']]]);
+        self::assertResponseIsSuccessful();
+        self::assertSame('Uncle Bob', $author->_refresh()->getInfo());
+
+        $this->requestJson('PATCH', '/books/'.$book->getId(), ['authors' => [['name' => 'Robert C. Martin', 'info' => 'Author of Clean Code']]]);
+        self::assertResponseIsSuccessful();
+        self::assertSame('Author of Clean Code', $author->_refresh()->getInfo());
     }
 
     /**
