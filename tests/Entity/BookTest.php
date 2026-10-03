@@ -23,6 +23,25 @@ class BookTest extends TestCase
         self::assertGreaterThanOrEqual($before, $book->getCreatedAt());
     }
 
+    public function testANewBookWasLastUpdatedWhenItWasCreated(): void
+    {
+        $book = new Book();
+        $book->onPrePersist();
+
+        self::assertSame($book->getCreatedAt(), $book->getUpdatedAt());
+    }
+
+    public function testTouchMovesTheUpdateTime(): void
+    {
+        $book = new Book();
+        self::assertNull($book->getUpdatedAt());
+
+        $before = new \DateTimeImmutable();
+        $book->touch();
+
+        self::assertGreaterThanOrEqual($before, $book->getUpdatedAt());
+    }
+
     public function testAddingABookAuthorLinksBothSidesOnce(): void
     {
         $book = new Book();

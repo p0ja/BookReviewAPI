@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Repository;
 
 use App\Config\ConfigData;
@@ -103,10 +105,10 @@ class ReviewRepository extends ServiceEntityRepository
             $qb->andWhere('b.rating = :rating')->setParameter('rating', $rating);
         }
         if (in_array($orderBy, ConfigData::REVIEW_SORTING_COLUMNS, true)) {
-            $qb->orderBy('b.'.$orderBy, 'ASC');
+            $qb->orderBy('b.'.$orderBy);
         }
         // A stable order, or rows could move between pages.
-        $qb->addOrderBy('b.id', 'ASC');
+        $qb->addOrderBy('b.id');
 
         /** @var Page<Review> $result */
         $result = $this->paginate($qb, $page, $size);

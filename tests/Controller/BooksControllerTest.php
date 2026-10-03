@@ -4,12 +4,15 @@ declare(strict_types=1);
 
 namespace App\Tests\Controller;
 
+use App\Entity\Book;
 use App\Factory\AuthorFakeDataFactory;
 use App\Factory\BookAuthorFakeDataFactory;
 use App\Factory\BookFakeDataFactory;
 use App\Factory\BookReviewFakeDataFactory;
 use App\Repository\BookAuthorRepository;
 use App\Tests\ApiTestCase;
+use Doctrine\DBAL\Types\Types;
+use Doctrine\ORM\EntityManagerInterface;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Symfony\Component\HttpFoundation\Response;
 
@@ -249,7 +252,7 @@ class BooksControllerTest extends ApiTestCase
 
     public function testCreateFailingPartWayStoresNothing(): void
     {
-        $bookAuthorRepository = $this->createMock(BookAuthorRepository::class);
+        $bookAuthorRepository = self::createStub(BookAuthorRepository::class);
         $bookAuthorRepository->method('createBookAuthor')->willThrowException(new \RuntimeException('Database failure'));
         static::getContainer()->set(BookAuthorRepository::class, $bookAuthorRepository);
 
@@ -459,6 +462,30 @@ class BooksControllerTest extends ApiTestCase
         $this->requestJson('PATCH', '/books/'.$book->getId(), ['authors' => [['name' => 'New', 'info' => null]]]);
 
         self::assertSame(['New'], array_column($this->responseData()['authors'], 'name'));
+    }
+
+    /**
+     * Only the links change, no column of the book, so this needs BookWriter to set it.
+     */
+    public function testPatchingOnlyTheAuthorsMovesTheUpdateTime(): void
+    {
+        $this->authenticate(['ROLE_ADMIN']);
+        $book = BookFakeDataFactory::createOne();
+        $id = $book->getId();
+        $longAgo = new \DateTimeImmutable('2000-01-01 00:00:00');
+        $entityManager = static::getContainer()->get(EntityManagerInterface::class);
+        $entityManager->createQuery('UPDATE '.Book::class.' b SET b.updatedAt = :at WHERE b.id = :id')
+            ->setParameter('at', $longAgo, Types::DATETIME_IMMUTABLE)
+            ->setParameter('id', $id)
+            ->execute();
+
+        $this->requestJson('PATCH', '/books/'.$id, ['authors' => [['name' => 'New Author']]]);
+        self::assertResponseIsSuccessful();
+
+        $entityManager->clear();
+        $updatedAt = $entityManager->find(Book::class, $id)?->getUpdatedAt();
+        self::assertNotNull($updatedAt);
+        self::assertGreaterThan($longAgo, $updatedAt);
     }
 
     public function testPatchRejectsAnInvalidField(): void

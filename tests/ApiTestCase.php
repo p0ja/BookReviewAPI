@@ -9,17 +9,14 @@ use App\Factory\UserFakeDataFactory;
 use Lexik\Bundle\JWTAuthenticationBundle\Services\JWTTokenManagerInterface;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
-use Zenstruck\Foundry\Test\Factories;
-use Zenstruck\Foundry\Test\ResetDatabase;
+use Zenstruck\Foundry\Attribute\ResetDatabase;
 
 /**
  * Base for tests that call the API through the kernel against the test database.
  */
+#[ResetDatabase]
 abstract class ApiTestCase extends WebTestCase
 {
-    use Factories;
-    use ResetDatabase;
-
     protected KernelBrowser $client;
 
     protected function setUp(): void

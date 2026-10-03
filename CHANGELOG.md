@@ -47,9 +47,12 @@
 1. Put secrets in `.env.local` (or real environment variables): `.env` no longer holds
    `APP_SECRET` or `JWT_PASSPHRASE`, and `.env.dev` is gone. See the README.
 2. Regenerate the JWT key pair with the new `JWT_PASSPHRASE`; tokens issued before stop working.
-3. Rebuild the Docker image (`docker compose up -d --build`): the Mercure hub was removed.
+3. Rebuild the Docker image (`docker compose up -d --build`): the Mercure hub was removed, and
+   the application now runs on Symfony 7.4 LTS (from 7.2), which fixes the security advisories
+   open against 7.2; run `composer install` on deployments that do not build the image.
 4. Run the migrations. One of them converts `price`, `publish_date` and `description`, and
    stops without changing anything if a price is above 99999999.99 or a publish date is
    not `YYYY-MM-DD`; fix those rows first. It also removes duplicate book-author links.
    Another renames the `book_id_id`/`author_id_id` columns of `review` and `book_author` to
    `book_id`/`author_id` in place; raw SQL against those tables must use the new names.
+   A third adds `book.updated_at`, filled from `created_at` for existing books.
