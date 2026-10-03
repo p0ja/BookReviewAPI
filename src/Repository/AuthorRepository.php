@@ -72,10 +72,10 @@ class AuthorRepository extends ServiceEntityRepository
                 ->setParameter('name', self::containsPattern($name));
         }
         if (in_array($orderBy, ConfigData::AUTHOR_SORTING_COLUMNS, true)) {
-            $qb->orderBy('a.'.$orderBy, 'ASC');
+            $qb->orderBy('a.'.$orderBy);
         }
         // A stable order, or rows could move between pages.
-        $qb->addOrderBy('a.id', 'ASC');
+        $qb->addOrderBy('a.id');
 
         /** @var Page<Author> $result */
         $result = $this->paginate($qb, $page, $size);

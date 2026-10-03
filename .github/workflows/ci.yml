@@ -42,11 +42,11 @@ jobs:
         name: Check HTTP reachability
         run: curl -v --fail-with-body http://localhost
       -
+        # Everything else needs a token; the API docs are public.
         name: Check HTTPS reachability
-        if: false # Remove this line when the homepage is configured or change the path to check
-        run: curl -vk --fail-with-body https://localhost
-      # The database steps build app_test from the migrations for the schema validator;
-      # the tests themselves run in symfony.yml, so PHPUnit stays off here.
+        run: curl -vk --fail-with-body https://localhost/api/doc
+      # app_test is built from the migrations first, so the validator checks them, not a
+      # schema generated from the mapping; PHPUnit runs last because it rebuilds app_test.
       -
         name: Create test database
         run: docker compose exec -T php bin/console -e test doctrine:database:create
@@ -54,12 +54,12 @@ jobs:
         name: Run migrations
         run: docker compose exec -T php bin/console -e test doctrine:migrations:migrate --no-interaction
       -
-        name: Run PHPUnit
-        if: false # Remove this line if PHPUnit is installed
-        run: docker compose exec -T php bin/phpunit
-      -
         name: Doctrine Schema Validator
         run: docker compose exec -T php bin/console -e test doctrine:schema:validate
+      -
+        # symfony.yml runs the suite on the runner's PHP; this runs it in the image that ships.
+        name: Run PHPUnit
+        run: docker compose exec -T php bin/phpunit
   lint:
     name: Docker Lint
     runs-on: ubuntu-latest

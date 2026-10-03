@@ -78,10 +78,10 @@ class BookRepository extends ServiceEntityRepository
         }
 
         if (in_array($orderBy, ConfigData::BOOK_SORTING_COLUMNS, true)) {
-            $qb->orderBy('b.'.$orderBy, 'ASC');
+            $qb->orderBy('b.'.$orderBy);
         }
         // A stable order, or rows could move between pages.
-        $qb->addOrderBy('b.id', 'ASC');
+        $qb->addOrderBy('b.id');
 
         /** @var Page<Book> $result */
         $result = $this->paginate($qb, $page, $size);
@@ -112,7 +112,7 @@ class BookRepository extends ServiceEntityRepository
             ->andWhere('b IN (:books)')
             ->setParameter('books', $books)
             // Authors in the order they were added, as a lazy load returned them.
-            ->orderBy('ba.id', 'ASC')
+            ->orderBy('ba.id')
             ->getQuery()
             ->getResult();
     }

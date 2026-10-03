@@ -61,6 +61,7 @@ class BookWriter
         }
 
         return $this->write($data->isbn, $book->getId(), function () use ($book, $data): Book {
+            $book->touch();
             $this->bookRepository->updateBook($book, $data);
             if ($data instanceof CreateBook || null !== $data->authors) {
                 $this->replaceAuthors($book, $data->authors ?? []);

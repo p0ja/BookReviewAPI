@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Entity;
 
 use App\Repository\BookRepository;
@@ -43,10 +45,19 @@ class Book
     #[Ignore]
     private ?\DateTimeImmutable $createdAt = null;
 
+    /**
+     * Last create, PUT or PATCH, an author change included; set by BookWriter, since
+     * replacing only the authors changes no column of the book itself.
+     */
+    #[ORM\Column(nullable: true)]
+    #[Ignore]
+    private ?\DateTimeImmutable $updatedAt = null;
+
     #[ORM\PrePersist]
     public function onPrePersist(): void
     {
         $this->createdAt = new \DateTimeImmutable();
+        $this->updatedAt = $this->createdAt;
     }
 
     /**
@@ -155,6 +166,18 @@ class Book
     public function getCreatedAt(): ?\DateTimeImmutable
     {
         return $this->createdAt;
+    }
+
+    public function getUpdatedAt(): ?\DateTimeImmutable
+    {
+        return $this->updatedAt;
+    }
+
+    public function touch(): static
+    {
+        $this->updatedAt = new \DateTimeImmutable();
+
+        return $this;
     }
 
     /**

@@ -72,19 +72,9 @@ class UserRepository extends ServiceEntityRepository implements PasswordUpgrader
         return $this->createQueryBuilder('u')
             ->andWhere('LOWER(u.email) = :email')
             ->setParameter('email', mb_strtolower(trim($email)))
-            ->orderBy('u.id', 'ASC')
+            ->orderBy('u.id')
             ->setMaxResults(1)
             ->getQuery()
             ->getOneOrNullResult();
-    }
-
-    public function findOneByAccessToken(string $identifier): ?User
-    {
-        return $this->createQueryBuilder('b')
-            ->andWhere('b.email = :val')
-            ->setParameter('val', $identifier)
-            ->getQuery()
-            ->getOneOrNullResult()
-        ;
     }
 }

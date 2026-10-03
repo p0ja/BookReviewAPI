@@ -1,0 +1,32 @@
+name: Security audit
+
+# Fails when an installed package has a known security advisory or is abandoned.
+# Runs when the dependencies change, and daily, because advisories are published
+# against versions that are already locked; a separate workflow so that a new
+# advisory does not fail unrelated pull requests in symfony.yml.
+on:
+  push:
+    branches: [ "master" ]
+    paths: [ "composer.json", "composer.lock", ".github/workflows/audit.yml" ]
+  pull_request:
+    branches: [ "master" ]
+    paths: [ "composer.json", "composer.lock", ".github/workflows/audit.yml" ]
+  schedule:
+    - cron: "17 6 * * *"
+  workflow_dispatch: ~
+
+permissions:
+  contents: read
+
+jobs:
+  composer-audit:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: shivammathur/setup-php@v2
+      with:
+        php-version: '8.3'
+        tools: composer
+    - uses: actions/checkout@v4
+    - name: Audit the locked dependencies
+      # --locked reads composer.lock, so nothing has to be installed.
+      run: composer audit --locked --no-interaction

@@ -105,7 +105,9 @@ composer phpstan
 
 # tests
 The API and repository tests use the test database (app_test, created and reset automatically), so the database service must be running.
-docker compose exec php bin/phpunit
+docker compose exec php composer test
+
+Any deprecation notice fails the run (failOnDeprecation in phpunit.dist.xml).
 
 From the host, point the tests at the database port published by compose.override.yaml:
 DATABASE_URL='postgresql://app:postgres@127.0.0.1:5432/app?serverVersion=16&charset=utf8' php bin/phpunit
