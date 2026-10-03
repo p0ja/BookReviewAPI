@@ -6,8 +6,13 @@ nelmio_api_doc:
                 REST API for books and reviews.
 
                 Every endpoint except /register and /login_check needs a JWT: call /login_check,
-                then press "Authorize" and paste the token. Changing or deleting a book needs an
-                admin; a review can be changed or deleted by its author or an admin.
+                then press "Authorize" and paste the token. Changing or deleting a book, and
+                changing an author, needs an admin; a review can be changed or deleted by its
+                author or an admin.
+
+                Lists are pages of at most 100 items. Every error is {"error": "..."}; a 422 for
+                an invalid payload also lists each problem under "violations". A successful GET
+                carries an ETag: send it back as If-None-Match to get 304 when nothing changed.
             version: 1.0.0
         components:
             securitySchemes:
@@ -124,8 +129,18 @@ nelmio_api_doc:
                                             token: { type: string }
                         '401':
                             description: Invalid credentials
+                            content:
+                                application/json:
+                                    schema: { $ref: '#/components/schemas/Error' }
                         '429':
-                            description: Too many failed attempts for this email from this address; wait a minute
+                            description: Too many failed attempts for this email from this address
+                            headers:
+                                Retry-After:
+                                    description: Seconds until a new attempt is accepted (whole minutes, at most 60)
+                                    schema: { type: integer }
+                            content:
+                                application/json:
+                                    schema: { $ref: '#/components/schemas/Error' }
     areas:
         # Only the API itself: leaves out the profiler, the error pages and the doc routes.
         path_patterns:

@@ -4,8 +4,12 @@ declare(strict_types=1);
 
 namespace App\Dto;
 
+use OpenApi\Attributes as OA;
 use Symfony\Component\Validator\Constraints as Assert;
 
+// The fields are nullable so a missing one reaches the validator; the docs list the
+// ones a request must have, which may not be null.
+#[OA\Schema(required: ['title', 'isbn', 'description', 'price', 'genre', 'publish_date'])]
 class CreateBook
 {
     /**
@@ -21,15 +25,18 @@ class CreateBook
         #[Assert\NotBlank(allowNull: true, normalizer: 'trim')]
         #[Assert\Type('string')]
         #[Assert\Length(max: 255, normalizer: 'trim')]
+        #[OA\Property(nullable: false)]
         public readonly ?string $title = null,
         #[Assert\NotNull(message: self::REQUIRED)]
         #[Assert\NotBlank(allowNull: true, normalizer: 'trim')]
         #[Assert\Type('string')]
         #[Assert\Length(min: 10, max: 13, normalizer: 'trim')]
+        #[OA\Property(nullable: false)]
         public readonly ?string $isbn = null,
         #[Assert\NotNull(message: self::REQUIRED)]
         #[Assert\Type('string')]
         #[Assert\Length(max: 10000)]
+        #[OA\Property(nullable: false)]
         public readonly ?string $description = null,
         // In sequence: the comparisons treat a non-numeric string as text ("abc" > "0"), so
         // they only run once the format is right. decimal(10,2) holds at most 99999999.99.
@@ -39,14 +46,17 @@ class CreateBook
             new Assert\GreaterThan(0),
             new Assert\LessThanOrEqual(99999999.99),
         ])]
+        #[OA\Property(nullable: false)]
         public readonly ?string $price = null,
         #[Assert\NotNull(message: self::REQUIRED)]
         #[Assert\Type('string')]
         #[Assert\Length(max: 255, normalizer: 'trim')]
+        #[OA\Property(nullable: false)]
         public readonly ?string $genre = null,
         // Required, but "" clears the date.
         #[Assert\NotNull(message: self::REQUIRED)]
         #[Assert\Date(message: 'Publish date must be a date in the form YYYY-MM-DD.')]
+        #[OA\Property(nullable: false)]
         public readonly ?string $publish_date = null,
         /** @var list<CreateAuthor>|null */
         #[Assert\Type('array')]
