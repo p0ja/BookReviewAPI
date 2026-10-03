@@ -39,11 +39,12 @@ class BookWriter
      */
     public function create(CreateBook $data): Book
     {
-        if ($this->bookRepository->isbnExists($data->isbn)) {
+        $isbn = $data->isbn ?? throw new \LogicException('A new book needs an ISBN; CreateBook is validated before.');
+        if ($this->bookRepository->isbnExists($isbn)) {
             throw new IsbnTakenException();
         }
 
-        return $this->write($data->isbn, null, function () use ($data): Book {
+        return $this->write($isbn, null, function () use ($data): Book {
             $book = $this->bookRepository->createBook($data);
             $this->replaceAuthors($book, $data->authors ?? [], updateAuthorInfo: false);
 

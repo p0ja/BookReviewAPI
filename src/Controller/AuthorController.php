@@ -4,19 +4,26 @@ declare(strict_types=1);
 
 namespace App\Controller;
 
+use App\Dto\UpdateAuthor;
 use App\Output\AuthorData;
 use App\Output\BookData;
 use App\Repository\AuthorRepository;
 use App\Repository\BookRepository;
+use Doctrine\DBAL\Exception\UniqueConstraintViolationException;
 use OpenApi\Attributes as OA;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Attribute\MapQueryParameter;
+use Symfony\Component\HttpKernel\Attribute\MapRequestPayload;
+use Symfony\Component\HttpKernel\Exception\ConflictHttpException;
 use Symfony\Component\Routing\Attribute\Route;
+use Symfony\Component\Security\Http\Attribute\IsGranted;
 
 #[OA\Tag(name: 'Authors')]
 final class AuthorController extends AbstractController
 {
+    private const NAME_TAKEN_MSG = 'Another author already has this name';
+
     public function __construct(
         private readonly AuthorRepository $authorRepository,
         private readonly BookRepository $bookRepository,
@@ -57,6 +64,38 @@ final class AuthorController extends AbstractController
         $author = $this->authorRepository->find($id);
         if (!$author) {
             throw $this->createNotFoundException('Author not found');
+        }
+
+        return $this->json($this->authorData->getOutput($author), Response::HTTP_OK);
+    }
+
+    #[OA\Patch(summary: 'Update an author', description: 'Admins only. Missing fields keep their value; an empty info clears it. Names are unique, trimmed and in any letter case.')]
+    #[OA\Response(
+        response: 200,
+        description: 'The updated author',
+        content: new OA\JsonContent(ref: '#/components/schemas/Author'),
+    )]
+    #[OA\Response(response: 403, description: 'Not an admin', content: new OA\JsonContent(ref: '#/components/schemas/Error'))]
+    #[OA\Response(response: 404, description: 'No author with this id', content: new OA\JsonContent(ref: '#/components/schemas/Error'))]
+    #[OA\Response(response: 409, description: 'Another author already has this name', content: new OA\JsonContent(ref: '#/components/schemas/Error'))]
+    #[OA\Response(response: 422, description: 'Invalid payload', content: new OA\JsonContent(ref: '#/components/schemas/Error'))]
+    #[Route('/authors/{id}', name: 'rest_author_patch', requirements: ['id' => '\d+'], methods: ['PATCH'])]
+    #[IsGranted('ROLE_ADMIN')]
+    public function patch(int $id, #[MapRequestPayload] UpdateAuthor $authorPatch): Response
+    {
+        $author = $this->authorRepository->find($id);
+        if (!$author) {
+            throw $this->createNotFoundException('Author not found');
+        }
+        if (null !== $authorPatch->name && $this->authorRepository->nameTaken($authorPatch->name, $id)) {
+            throw new ConflictHttpException(self::NAME_TAKEN_MSG);
+        }
+
+        try {
+            $author = $this->authorRepository->update($author, $authorPatch);
+        } catch (UniqueConstraintViolationException $e) {
+            // Renamed by another request between the check and the update.
+            throw new ConflictHttpException(self::NAME_TAKEN_MSG, $e);
         }
 
         return $this->json($this->authorData->getOutput($author), Response::HTTP_OK);

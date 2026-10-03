@@ -138,18 +138,6 @@ class ReviewRepository extends ServiceEntityRepository
         return $stats;
     }
 
-    public function removeReview(int $id): bool
-    {
-        $review = $this->find($id);
-        if ($review) {
-            $this->remove($review);
-
-            return true;
-        }
-
-        return false;
-    }
-
     public function remove(Review $review): void
     {
         $em = $this->getEntityManager();

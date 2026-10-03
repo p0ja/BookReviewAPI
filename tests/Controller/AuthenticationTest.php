@@ -93,6 +93,7 @@ class AuthenticationTest extends ApiTestCase
         yield 'get review' => ['GET', '/reviews/1'];
         yield 'list authors' => ['GET', '/authors'];
         yield 'get author' => ['GET', '/authors/1'];
+        yield 'update author' => ['PATCH', '/authors/1'];
         yield 'author books' => ['GET', '/authors/1/books'];
     }
 
@@ -120,5 +121,17 @@ class AuthenticationTest extends ApiTestCase
 
         self::assertResponseStatusCodeSame(Response::HTTP_TOO_MANY_REQUESTS);
         self::assertStringStartsWith('Too many failed login attempts', $this->responseData()['error']);
+        // The interval is one minute: retry within at most 60 seconds, as with /register.
+        self::assertSame('60', $this->client->getResponse()->headers->get('Retry-After'));
+    }
+
+    public function testFailedLoginsBelowTheLimitHaveNoRetryAfter(): void
+    {
+        UserFakeDataFactory::createOne(['email' => 'reader@example.com', 'password' => 'secret']);
+
+        $this->requestJson('POST', '/login_check', ['username' => 'reader@example.com', 'password' => 'wrong']);
+
+        self::assertResponseStatusCodeSame(Response::HTTP_UNAUTHORIZED);
+        self::assertFalse($this->client->getResponse()->headers->has('Retry-After'));
     }
 }

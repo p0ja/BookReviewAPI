@@ -83,4 +83,63 @@ class AuthorControllerTest extends ApiTestCase
 
         self::assertResponseStatusCodeSame(Response::HTTP_NOT_FOUND);
     }
+
+    public function testAdminsUpdateAnAuthor(): void
+    {
+        $this->authenticate(['ROLE_ADMIN']);
+        $author = AuthorFakeDataFactory::createOne(['name' => 'Robert Martin', 'info' => 'Uncle Bob']);
+
+        $this->requestJson('PATCH', '/authors/'.$author->getId(), ['name' => ' Robert C. Martin ']);
+
+        self::assertResponseIsSuccessful();
+        self::assertSame(['id' => $author->getId(), 'name' => 'Robert C. Martin', 'info' => 'Uncle Bob'], $this->responseData());
+
+        $this->requestJson('PATCH', '/authors/'.$author->getId(), ['info' => '']);
+
+        self::assertResponseIsSuccessful();
+        self::assertNull($this->responseData()['info']);
+    }
+
+    public function testAuthorsCanBeUpdatedOnlyByAdmins(): void
+    {
+        $author = AuthorFakeDataFactory::createOne(['name' => 'Robert C. Martin', 'info' => 'Uncle Bob']);
+
+        $this->requestJson('PATCH', '/authors/'.$author->getId(), ['info' => 'Vandal']);
+
+        self::assertResponseStatusCodeSame(Response::HTTP_FORBIDDEN);
+        self::assertSame('Uncle Bob', $author->_refresh()->getInfo());
+    }
+
+    public function testRenamingToAnotherAuthorsNameIsAConflict(): void
+    {
+        $this->authenticate(['ROLE_ADMIN']);
+        AuthorFakeDataFactory::createOne(['name' => 'Kent Beck']);
+        $author = AuthorFakeDataFactory::createOne(['name' => 'Martin Fowler']);
+
+        $this->requestJson('PATCH', '/authors/'.$author->getId(), ['name' => 'KENT beck']);
+        self::assertResponseStatusCodeSame(Response::HTTP_CONFLICT);
+
+        // Its own name in another letter case is not a conflict.
+        $this->requestJson('PATCH', '/authors/'.$author->getId(), ['name' => 'martin fowler']);
+        self::assertResponseIsSuccessful();
+    }
+
+    public function testUpdatingAnUnknownAuthorIsNotFound(): void
+    {
+        $this->authenticate(['ROLE_ADMIN']);
+
+        $this->requestJson('PATCH', '/authors/999999', ['info' => 'x']);
+
+        self::assertResponseStatusCodeSame(Response::HTTP_NOT_FOUND);
+    }
+
+    public function testUpdatingAnAuthorRejectsABlankName(): void
+    {
+        $this->authenticate(['ROLE_ADMIN']);
+        $author = AuthorFakeDataFactory::createOne();
+
+        $this->requestJson('PATCH', '/authors/'.$author->getId(), ['name' => '   ']);
+
+        self::assertResponseStatusCodeSame(Response::HTTP_UNPROCESSABLE_ENTITY);
+    }
 }

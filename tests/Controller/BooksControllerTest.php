@@ -283,6 +283,39 @@ class BooksControllerTest extends ApiTestCase
         BookFakeDataFactory::assert()->empty();
     }
 
+    /**
+     * A missing field is named as missing, and the other violations of the request are
+     * reported with it; it used to read "should be of type string" and hide the rest.
+     */
+    public function testCreateWithAMissingFieldSaysItIsRequired(): void
+    {
+        $payload = $this->bookPayload(['price' => 'abc']);
+        unset($payload['isbn']);
+
+        $this->requestJson('POST', '/books', $payload);
+
+        self::assertResponseStatusCodeSame(Response::HTTP_UNPROCESSABLE_ENTITY);
+        $error = $this->responseData()['error'];
+        self::assertStringContainsString('isbn: This field is required.', $error);
+        self::assertStringContainsString('Price must be a decimal number', $error);
+    }
+
+    public function testCreateWithANullAuthorNameSaysItIsRequired(): void
+    {
+        $this->requestJson('POST', '/books', $this->bookPayload(['authors' => [['info' => 'No name']]]));
+
+        self::assertResponseStatusCodeSame(Response::HTTP_UNPROCESSABLE_ENTITY);
+        self::assertContains(['field' => 'authors[0].name', 'message' => 'This field is required.'], $this->responseData()['violations']);
+    }
+
+    public function testCreateWithAFieldOfTheWrongTypeSaysWhichTypeIsExpected(): void
+    {
+        $this->requestJson('POST', '/books', $this->bookPayload(['isbn' => 9780134494166]));
+
+        self::assertResponseStatusCodeSame(Response::HTTP_UNPROCESSABLE_ENTITY);
+        self::assertStringContainsString('This value should be of type', $this->responseData()['error']);
+    }
+
     public function testCreateRejectsANonNumericPrice(): void
     {
         $this->requestJson('POST', '/books', $this->bookPayload(['price' => 'abc']));

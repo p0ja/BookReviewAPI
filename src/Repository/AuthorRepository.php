@@ -6,6 +6,7 @@ namespace App\Repository;
 
 use App\Config\ConfigData;
 use App\Dto\CreateAuthor;
+use App\Dto\UpdateAuthor;
 use App\Entity\Author;
 use App\Logger\LoggerInterface;
 use App\Logger\NamespaceEnum;
@@ -37,7 +38,7 @@ class AuthorRepository extends ServiceEntityRepository
      */
     public function findOrCreate(CreateAuthor $authorData, bool $updateInfo = false): Author
     {
-        $name = trim($authorData->name);
+        $name = trim($authorData->name ?? throw new \LogicException('An author needs a name; CreateAuthor is validated before.'));
         $author = $this->findOneByNameIgnoringCase($name);
         if (null !== $author && (!$updateInfo || null === $authorData->info)) {
             return $author;
@@ -65,6 +66,38 @@ class AuthorRepository extends ServiceEntityRepository
         }
 
         return $author;
+    }
+
+    /**
+     * Saves the given fields of an author (admins, PATCH /authors/{id}). A name another
+     * author already has, in any letter case, must be refused before: see nameTaken().
+     */
+    public function update(Author $author, UpdateAuthor $data): Author
+    {
+        if (null !== $data->name) {
+            $author->setName(trim($data->name));
+        }
+        if (null !== $data->info) {
+            $info = trim($data->info);
+            $author->setInfo('' === $info ? null : $info);
+        }
+
+        $em = $this->getEntityManager();
+        $em->persist($author);
+        $em->flush();
+
+        return $author;
+    }
+
+    /**
+     * Whether another author than $exceptAuthorId has this name, trimmed and in any
+     * letter case.
+     */
+    public function nameTaken(string $name, int $exceptAuthorId): bool
+    {
+        $author = $this->findOneByNameIgnoringCase(trim($name));
+
+        return null !== $author && $author->getId() !== $exceptAuthorId;
     }
 
     /**

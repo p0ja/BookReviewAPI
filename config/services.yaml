@@ -23,9 +23,12 @@ services:
 
     # add more service definitions when explicit configuration is needed
     # please note that last definitions always *replace* previous ones
+    # After Symfony's ErrorListener logs the exception (priority 0): setting a response
+    # stops the event, so at the same priority the exception was not always logged by it.
+    # Before Symfony's own error rendering (priority -128).
     App\EventListener\ExceptionListener:
         tags:
-            - { name: kernel.event_listener, event: kernel.exception, method: onKernelException }
+            - { name: kernel.event_listener, event: kernel.exception, method: onKernelException, priority: -64 }
 
     App\Logger\Logger:
         arguments:
