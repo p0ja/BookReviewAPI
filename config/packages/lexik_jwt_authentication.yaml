@@ -10,8 +10,7 @@ when@test:
         secret_key: 'test-only-jwt-signing-secret-not-for-real-use'
         public_key: ~
         pass_phrase: ''
-        # A token is created and checked within milliseconds, but the WSL2 wall clock can
-        # step backwards by tens of seconds, which makes "iat" look like it is in the future.
-        clock_skew: 60
+        # No clock_skew: App\Tests\BackdateTokensListener issues test tokens five minutes in the
+        # past, which absorbs the WSL2 wall-clock steps that used to reject fresh tokens.
         encoder:
             signature_algorithm: HS256

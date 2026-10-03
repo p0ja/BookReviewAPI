@@ -99,6 +99,12 @@ POST /books answers 201 with a Location header pointing at the new book.
 Every successful GET carries an ETag; send it back as If-None-Match and an unchanged resource answers 304 with no body. Responses are private (no-cache: revalidate each time), so a change is visible on the next request.
 curl -i -H "Authorization: Bearer [jwt token]" -H 'If-None-Match: "[etag]"' https://localhost/books/{id}
 
+# production image
+The prod stage holds no secrets (.dockerignore keeps .env.local and config/jwt/*.pem out), so pass them at runtime and mount the keys. On start it waits for the database and runs the migrations.
+docker build --target frankenphp_prod -t bookreviewapi:prod .
+(The Dockerfile needs BuildKit: install the docker buildx plugin, or build through compose with a file that sets build.target: frankenphp_prod.)
+docker run -d -p 443:443 -e SERVER_NAME=your.domain -e APP_SECRET=... -e JWT_PASSPHRASE=... -e DATABASE_URL=... -v /path/to/jwt:/app/config/jwt:ro bookreviewapi:prod
+
 # static analysis
 PHPStan (level 6, config in phpstan.dist.neon) checks src and tests; CI runs it too:
 composer phpstan
