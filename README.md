@@ -95,6 +95,10 @@ Browsers may call the API from localhost or 127.0.0.1 on any port (CORS); set CO
 Every error answers {"error": "..."} with the matching status: 401 (missing, invalid or expired token, wrong password), 403 (not allowed to change it), 404, 409 (an ISBN or email that is already taken), 422 (validation), 429 (too many failed logins or registrations).
 POST /books answers 201 with a Location header pointing at the new book.
 
+# caching
+Every successful GET carries an ETag; send it back as If-None-Match and an unchanged resource answers 304 with no body. Responses are private (no-cache: revalidate each time), so a change is visible on the next request.
+curl -i -H "Authorization: Bearer [jwt token]" -H 'If-None-Match: "[etag]"' https://localhost/books/{id}
+
 # static analysis
 PHPStan (level 6, config in phpstan.dist.neon) checks src and tests; CI runs it too:
 composer phpstan

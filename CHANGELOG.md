@@ -34,6 +34,8 @@
 - CORS for `localhost`/`127.0.0.1` on any port (`CORS_ALLOW_ORIGIN`).
 - Login throttling: 5 failed attempts per email and address per minute, then 429.
 - Registration limit: 10 attempts per address per hour, then 429 with `Retry-After`.
+- Conditional GET: successful `GET`s carry an `ETag` and `Cache-Control: private, no-cache`;
+  send it back in `If-None-Match` and an unchanged resource answers `304` with no body.
 
 ### Changed
 
@@ -49,3 +51,5 @@
 4. Run the migrations. One of them converts `price`, `publish_date` and `description`, and
    stops without changing anything if a price is above 99999999.99 or a publish date is
    not `YYYY-MM-DD`; fix those rows first. It also removes duplicate book-author links.
+   Another renames the `book_id_id`/`author_id_id` columns of `review` and `book_author` to
+   `book_id`/`author_id` in place; raw SQL against those tables must use the new names.

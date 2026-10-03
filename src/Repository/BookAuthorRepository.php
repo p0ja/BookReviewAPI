@@ -59,8 +59,8 @@ class BookAuthorRepository extends ServiceEntityRepository
     private function getBookAuthor(int $bookId, int $authorId): ?BookAuthor
     {
         $bookAuthor = $this->createQueryBuilder('b')
-            ->andWhere('b.book_id = :val')
-            ->andWhere('b.author_id = :val2')
+            ->andWhere('b.book = :val')
+            ->andWhere('b.author = :val2')
             ->setParameter('val', $bookId)
             ->setParameter('val2', $authorId)
             ->setMaxResults(1)

@@ -63,11 +63,11 @@ class AuthorControllerTest extends ApiTestCase
     {
         $fowler = AuthorFakeDataFactory::createOne(['name' => 'Martin Fowler']);
         foreach (['Refactoring', 'Analysis Patterns'] as $title) {
-            BookAuthorFakeDataFactory::createOne(['book_id' => BookFakeDataFactory::createOne(['title' => $title]), 'author_id' => $fowler]);
+            BookAuthorFakeDataFactory::createOne(['book' => BookFakeDataFactory::createOne(['title' => $title]), 'author' => $fowler]);
         }
         BookAuthorFakeDataFactory::createOne([
-            'book_id' => BookFakeDataFactory::createOne(['title' => 'Domain-Driven Design']),
-            'author_id' => AuthorFakeDataFactory::createOne(['name' => 'Eric Evans']),
+            'book' => BookFakeDataFactory::createOne(['title' => 'Domain-Driven Design']),
+            'author' => AuthorFakeDataFactory::createOne(['name' => 'Eric Evans']),
         ]);
 
         $this->client->request('GET', '/authors/'.$fowler->getId().'/books?orderBy=title');
