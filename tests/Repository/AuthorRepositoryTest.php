@@ -58,4 +58,19 @@ class AuthorRepositoryTest extends RepositoryTestCase
         self::assertSame($book, $second->getBook());
         self::assertSame($author, $second->getAuthor());
     }
+
+    /**
+     * PHP and PostgreSQL lowercase "İ" differently; a PHP-lowercased lookup missed the
+     * author, and the unique LOWER(name) index then refused to insert it again.
+     */
+    public function testFindOrCreateFindsANameThatPhpAndPostgresLowercaseDifferently(): void
+    {
+        $repository = $this->service(AuthorRepository::class);
+
+        $first = $repository->findOrCreate(new CreateAuthor('İlber Ortaylı'));
+        $second = $repository->findOrCreate(new CreateAuthor(' İlber ortaylı '));
+
+        self::assertSame($first->getId(), $second->getId());
+        AuthorFakeDataFactory::assert()->count(1);
+    }
 }

@@ -4,8 +4,12 @@ declare(strict_types=1);
 
 namespace App\Dto;
 
+use OpenApi\Attributes as OA;
 use Symfony\Component\Validator\Constraints as Assert;
 
+// The fields are nullable so a missing one reaches the validator; the docs list the
+// ones a request must have, which may not be null.
+#[OA\Schema(required: ['name'])]
 class CreateAuthor
 {
     public function __construct(
@@ -15,6 +19,7 @@ class CreateAuthor
         #[Assert\NotBlank(allowNull: true, normalizer: 'trim')]
         #[Assert\Type('string')]
         #[Assert\Length(max: 255, normalizer: 'trim')]
+        #[OA\Property(nullable: false)]
         public readonly ?string $name = null,
         #[Assert\Type('string')]
         #[Assert\Length(max: 255)]

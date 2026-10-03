@@ -316,6 +316,56 @@ class BooksControllerTest extends ApiTestCase
         self::assertStringContainsString('This value should be of type', $this->responseData()['error']);
     }
 
+    /**
+     * A second book by an author whose name PHP and PostgreSQL lowercase differently
+     * ("İ") used to answer 409 "try again" forever.
+     */
+    public function testCreateReusesAnAuthorWhoseNameHasADottedCapitalI(): void
+    {
+        $this->requestJson('POST', '/books', $this->bookPayload(['authors' => [['name' => 'İlber Ortaylı']]]));
+        self::assertResponseStatusCodeSame(Response::HTTP_CREATED);
+
+        $this->requestJson('POST', '/books', $this->bookPayload(['isbn' => '9780134494167', 'authors' => [['name' => 'İlber Ortaylı']]]));
+        self::assertResponseStatusCodeSame(Response::HTTP_CREATED);
+        AuthorFakeDataFactory::assert()->count(1);
+
+        $this->client->request('GET', '/books?author='.rawurlencode('İlber').'&title='.rawurlencode('CLEAN'));
+        self::assertSame(2, $this->responseData()['total']);
+    }
+
+    /**
+     * Two LIKE filters at once, one of them in the author subquery: the paginator lost a
+     * parameter and the query failed with 500.
+     */
+    public function testTitleAndAuthorFiltersCombine(): void
+    {
+        $refactoring = BookFakeDataFactory::createOne(['title' => 'Refactoring']);
+        BookAuthorFakeDataFactory::createOne(['book' => $refactoring, 'author' => AuthorFakeDataFactory::createOne(['name' => 'Martin Fowler'])]);
+        $other = BookFakeDataFactory::createOne(['title' => 'Refactoring Databases']);
+        BookAuthorFakeDataFactory::createOne(['book' => $other, 'author' => AuthorFakeDataFactory::createOne(['name' => 'Scott Ambler'])]);
+
+        $this->client->request('GET', '/books?title=refactoring&author=fowler');
+
+        self::assertResponseIsSuccessful();
+        self::assertSame(['Refactoring'], array_column($this->responseData()['items'], 'title'));
+    }
+
+    /**
+     * The wildcard characters, and the escape character itself, are matched literally.
+     */
+    public function testTitleFilterTakesWildcardsLiterally(): void
+    {
+        foreach (['100% Agile', '100 Agile', 'Wow! Agile', 'Wo Agile'] as $title) {
+            BookFakeDataFactory::createOne(['title' => $title]);
+        }
+
+        $this->client->request('GET', '/books?title='.rawurlencode('100%').'&genre=&orderBy=title');
+        self::assertSame(['100% Agile'], array_column($this->responseData()['items'], 'title'));
+
+        $this->client->request('GET', '/books?title='.rawurlencode('w!'));
+        self::assertSame(['Wow! Agile'], array_column($this->responseData()['items'], 'title'));
+    }
+
     public function testCreateRejectsANonNumericPrice(): void
     {
         $this->requestJson('POST', '/books', $this->bookPayload(['price' => 'abc']));

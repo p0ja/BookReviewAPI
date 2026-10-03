@@ -142,4 +142,14 @@ class AuthorControllerTest extends ApiTestCase
 
         self::assertResponseStatusCodeSame(Response::HTTP_UNPROCESSABLE_ENTITY);
     }
+
+    public function testNameFilterFindsANameThatPhpAndPostgresLowercaseDifferently(): void
+    {
+        AuthorFakeDataFactory::createOne(['name' => 'İlber Ortaylı']);
+
+        $this->client->request('GET', '/authors?name='.rawurlencode('İlber'));
+
+        self::assertResponseIsSuccessful();
+        self::assertSame(['İlber Ortaylı'], array_column($this->items(), 'name'));
+    }
 }

@@ -54,6 +54,13 @@
 - Conditional GET: successful `GET`s carry an `ETag` and `Cache-Control: private, no-cache`;
   send it back in `If-None-Match` and an unchanged resource answers `304` with no body.
 
+### Fixed
+
+- `GET /books` with both `title` and `author` answered 500.
+- A second book by an author whose name lowercases differently in PHP and PostgreSQL
+  (the Turkish `İ`) answered 409 "try again" every time; searching for such names found
+  nothing.
+
 ### Changed
 
 - Emails are case-insensitive: login matches any letter case, registration stores them
@@ -83,7 +90,9 @@
    A third adds `book.updated_at`, filled from `created_at` for existing books. A fourth
    trims author names and merges authors whose names differ only in case or spacing (the
    oldest is kept, with the first `info` found; book links move to it), then makes names
-   unique in any letter case. The merge cannot be undone by migrating down.
+   unique in any letter case. A fifth trims the tabs and line breaks the fourth left
+   (it trimmed spaces only) and merges again. Neither merge can be undone by migrating
+   down.
 5. The prod image no longer contains `.env.local`, the JWT keys, dev packages or tests
    (a `.dockerignore` was missing, so `COPY . ./` took the whole checkout). Pass `APP_SECRET`,
    `JWT_PASSPHRASE` and `DATABASE_URL` as environment variables and mount `config/jwt/`;

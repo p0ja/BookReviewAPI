@@ -28,7 +28,8 @@ To try the endpoints, run POST /login_check from the page, press "Authorize" and
 Offline copy: php bin/console nelmio:apidoc:dump > openapi.json
 
 # fixtures
-symfony console doctrine:fixtures:load
+Replaces the data in the dev database with sample books, authors, reviews and the two users below:
+docker compose exec php bin/console doctrine:fixtures:load
 
 # JWT:
 The keys (config/jwt/*.pem, not committed) must be encrypted with the JWT_PASSPHRASE from .env.local; after changing the passphrase, regenerate them (this invalidates every issued token) and restart the php container, which reads .env.local when it starts:
@@ -44,7 +45,7 @@ Each address may try 10 registrations per hour (config/packages/rate_limiter.yam
 curl -X POST -H "Content-Type: application/json" https://localhost/register -d '{"email":"reader@example.com","password":"long enough"}'
 
 Users are loaded from the users table by email. The fixtures create admin@example.com / admin (ROLE_ADMIN) and user@example.com / user (ROLE_USER).
-After 5 failed logins for an email from one address within a minute, /login_check answers 429 until the minute is over.
+After 5 failed logins for an email from one address within a minute, /login_check answers 429, with Retry-After, until the minute is over.
 curl -X POST -H "Content-Type: application/json" https://localhost/login_check -d '{"username":"user@example.com","password":"user"}'
 
 # requests
@@ -53,7 +54,7 @@ curl -X POST -H "Content-Type: application/json" https://localhost/login_check -
 # books have average_rating (null without reviews) and review_count
 curl -X GET -H "Authorization: Bearer [jwt token]" 'https://localhost/books?page=1&size=20&orderBy=title'
 
-# filter books: title and author match part of the text, genre the whole genre (all case-insensitive), minRating the average rating
+# filter books: title and author match part of the text (% and _ are taken literally), genre the whole genre (all case-insensitive), minRating the average rating; filters combine
 curl -X GET -H "Authorization: Bearer [jwt token]" 'https://localhost/books?title=clean&genre=software&author=martin&minRating=4'
 
 # single book
@@ -72,12 +73,14 @@ curl -X GET -H "Authorization: Bearer [jwt token]" https://localhost/authors/{id
 curl -X GET -H "Authorization: Bearer [jwt token]" https://localhost/authors/{id}/books
 
 # create book (authors are matched by name, trimmed and in any letter case; an existing author keeps its info, which only admins change, through PUT/PATCH)
-curl -v -X POST http://127.0.0.1:8000/books -H 'Authorization: Bearer [jwt token]' -H 'Content-Type: application/json' -d '{"title":"nowy title","isbn":"nowyIsbn0123","description":"book description","price":"123.14","genre":"PHP","publish_date":"2023-12-12","authors":[{"name":"author1 name and surname","info":"information about author"},{"name":"author2 name","info":"information about author"}]}'
+# every field but authors is required ("publish_date": "" leaves the date empty); a missing one answers 422 "This field is required."
+curl -X POST https://localhost/books -H 'Authorization: Bearer [jwt token]' -H 'Content-Type: application/json' -d '{"title":"Clean Architecture","isbn":"9780134494166","description":"A guide to software structure","price":"29.99","genre":"Software","publish_date":"2017-09-10","authors":[{"name":"Robert C. Martin","info":"Uncle Bob"}]}'
 
 # create review
-curl -v -X POST http://127.0.0.1:8000/books/{id}/reviews -H 'Authorization: Bearer [jwt token]' -H 'Content-Type: application/json' -d '{"name":"reviewer name","content":"prosty nowy review content","rating":"3"}'
+# name, content (at least 3 characters) and rating ("0" to "5") are required
+curl -X POST https://localhost/books/{id}/reviews -H 'Authorization: Bearer [jwt token]' -H 'Content-Type: application/json' -d '{"name":"Jane","content":"Clear and practical.","rating":"4"}'
 
-# update a book (admins only): PUT sets every field and replaces the authors, PATCH only the given fields (authors, when given, replace all of them)
+# update a book (admins only): PUT sets every field and replaces the authors, PATCH only the given fields (authors, when given, replace all of them); an existing author given with an info gets that info
 curl -X PATCH https://localhost/books/{id} -H 'Authorization: Bearer [jwt token]' -H 'Content-Type: application/json' -d '{"price":"25.00"}'
 
 # update a review (its author or an admin), same PUT/PATCH rules
@@ -95,10 +98,13 @@ Reviews belong to the user who posted them (user_id). Reviews from before that h
 Browsers may call the API from localhost or 127.0.0.1 on any port (CORS); set CORS_ALLOW_ORIGIN (a regex) in .env.local for other origins.
 
 # errors
-Every error answers {"error": "..."} with the matching status: 401 (missing, invalid or expired token, wrong password), 403 (not allowed to change it), 404, 409 (an ISBN or email that is already taken), 422 (validation), 429 (too many failed logins or registrations).
+Every error answers {"error": "..."} with the matching status: 400 (malformed query parameter or JSON), 401 (missing, invalid or expired token, wrong password), 403 (not allowed to change it), 404, 409 (an ISBN, email or author name that is already taken, or a simultaneous request wrote the same data: retry), 422 (validation), 429 (too many failed logins or registrations).
 POST /books answers 201 with a Location header pointing at the new book.
 An invalid payload (422) also lists each problem: {"error": "isbn: This field is required.\nprice: ...", "violations": [{"field": "isbn", "message": "This field is required."}, ...]}.
 A throttled login (429) carries Retry-After, like /register.
+
+# logging
+Each exception is logged once, by Symfony, in the request channel: the client errors above (400, 403, 404, 405, 409, 422, 429) at INFO, anything else at ERROR or CRITICAL (framework.exceptions in config/packages/framework.yaml).
 
 # caching
 Every successful GET carries an ETag; send it back as If-None-Match and an unchanged resource answers 304 with no body. Responses are private (no-cache: revalidate each time), so a change is visible on the next request.
@@ -116,7 +122,7 @@ PHPStan (level 6, config in phpstan.dist.neon) checks src and tests; CI runs it 
 composer phpstan
 
 # tests
-The API and repository tests use the test database (app_test, created and reset automatically), so the database service must be running.
+The API and repository tests use the test database (app_test), so the database service must be running. Foundry builds it with the migrations, so it has the same indexes as production, and each test runs in a transaction that is rolled back.
 docker compose exec php composer test
 
 Any deprecation notice fails the run (failOnDeprecation in phpunit.dist.xml).

@@ -50,16 +50,16 @@ class BookRepository extends ServiceEntityRepository
         $qb = $this->createQueryBuilder('b');
 
         if (null !== $title && '' !== trim($title)) {
-            $qb->andWhere("LOWER(b.title) LIKE :title ESCAPE '\\'")
+            $qb->andWhere("LOWER(b.title) LIKE LOWER(:title) ESCAPE '!'")
                 ->setParameter('title', self::containsPattern($title));
         }
         if (null !== $genre && '' !== trim($genre)) {
-            $qb->andWhere('LOWER(b.genre) = :genre')
-                ->setParameter('genre', mb_strtolower(trim($genre)));
+            $qb->andWhere('LOWER(b.genre) = LOWER(:genre)')
+                ->setParameter('genre', trim($genre));
         }
         // Subqueries rather than joins keep one row per book, so paging stays simple.
         if (null !== $author && '' !== trim($author)) {
-            $qb->andWhere("b.id IN (SELECT IDENTITY(ba.book) FROM App\Entity\BookAuthor ba JOIN ba.author a WHERE LOWER(a.name) LIKE :author ESCAPE '\\')")
+            $qb->andWhere("b.id IN (SELECT IDENTITY(ba.book) FROM App\Entity\BookAuthor ba JOIN ba.author a WHERE LOWER(a.name) LIKE LOWER(:author) ESCAPE '!')")
                 ->setParameter('author', self::containsPattern($author));
         }
         if (null !== $authorId) {
