@@ -9,6 +9,7 @@ use App\Dto\CreateBook;
 use App\Dto\UpdateBook;
 use App\Entity\Author;
 use App\Entity\Book;
+use App\Exception\ConcurrentWriteException;
 use App\Exception\IsbnTakenException;
 use App\Repository\AuthorRepository;
 use App\Repository\BookAuthorRepository;
@@ -31,7 +32,10 @@ class BookWriter
     }
 
     /**
+     * Open to every user, so existing authors are linked as they are, never changed.
+     *
      * @throws IsbnTakenException
+     * @throws ConcurrentWriteException
      */
     public function create(CreateBook $data): Book
     {
@@ -41,18 +45,22 @@ class BookWriter
 
         return $this->write($data->isbn, null, function () use ($data): Book {
             $book = $this->bookRepository->createBook($data);
-            $this->replaceAuthors($book, $data->authors ?? []);
+            $this->replaceAuthors($book, $data->authors ?? [], updateAuthorInfo: false);
 
             return $book;
         });
     }
 
     /**
+     * Admins only: an author given with an info gets that info (see
+     * AuthorRepository::findOrCreate()).
+     *
      * PUT passes a CreateBook (every field, the authors replaced by the given list, none
      * when it is missing); PATCH an UpdateBook (only the given fields, the authors only
      * when a list is given).
      *
      * @throws IsbnTakenException
+     * @throws ConcurrentWriteException
      */
     public function update(Book $book, CreateBook|UpdateBook $data): Book
     {
@@ -64,7 +72,7 @@ class BookWriter
             $book->touch();
             $this->bookRepository->updateBook($book, $data);
             if ($data instanceof CreateBook || null !== $data->authors) {
-                $this->replaceAuthors($book, $data->authors ?? []);
+                $this->replaceAuthors($book, $data->authors ?? [], updateAuthorInfo: true);
             }
 
             return $book;
@@ -82,12 +90,13 @@ class BookWriter
             return $this->entityManager->wrapInTransaction($write);
         } catch (UniqueConstraintViolationException $e) {
             // Another request wrote at the same time. Only call it an ISBN conflict when the
-            // ISBN is now taken: the violated key may be another one (the book-author links).
+            // ISBN is now taken: the violated key may be another one (an author's name, a
+            // book-author link), which a retry resolves.
             if (null !== $isbn && $this->bookRepository->isbnExists($isbn, $exceptBookId)) {
                 throw new IsbnTakenException($e);
             }
 
-            throw $e;
+            throw new ConcurrentWriteException($e);
         }
     }
 
@@ -97,12 +106,12 @@ class BookWriter
      *
      * @param list<CreateAuthor> $authors
      */
-    private function replaceAuthors(Book $book, array $authors): void
+    private function replaceAuthors(Book $book, array $authors, bool $updateAuthorInfo): void
     {
         /** @var array<int, Author> $wanted */
         $wanted = [];
         foreach ($authors as $authorData) {
-            $author = $this->authorRepository->createAuthor($authorData);
+            $author = $this->authorRepository->findOrCreate($authorData, $updateAuthorInfo);
             $wanted[(int) $author->getId()] = $author;
         }
 

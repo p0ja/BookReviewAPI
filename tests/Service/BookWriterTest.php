@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Tests\Service;
 
 use App\Dto\CreateBook;
+use App\Exception\ConcurrentWriteException;
 use App\Exception\IsbnTakenException;
 use App\Repository\AuthorRepository;
 use App\Repository\BookAuthorRepository;
@@ -31,11 +32,14 @@ class BookWriterTest extends TestCase
         $writer->create($this->book());
     }
 
-    public function testOtherUniqueViolationsAreNotReportedAsAnIsbnConflict(): void
+    /**
+     * Another key, such as an author created by a simultaneous request: a retry finds it.
+     */
+    public function testOtherUniqueViolationsAreAConcurrentWrite(): void
     {
         $writer = $this->writerFailingWithAUniqueViolation(isbnTakenAfterwards: false);
 
-        $this->expectException(UniqueConstraintViolationException::class);
+        $this->expectException(ConcurrentWriteException::class);
 
         $writer->create($this->book());
     }
