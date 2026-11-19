@@ -121,8 +121,10 @@ class AuthenticationTest extends ApiTestCase
 
         self::assertResponseStatusCodeSame(Response::HTTP_TOO_MANY_REQUESTS);
         self::assertStringStartsWith('Too many failed login attempts', $this->responseData()['error']);
-        // The interval is one minute: retry within at most 60 seconds, as with /register.
-        self::assertSame('60', $this->client->getResponse()->headers->get('Retry-After'));
+        // The window ends one minute after the first failure, rounded up to the second.
+        $retryAfter = (int) $this->client->getResponse()->headers->get('Retry-After');
+        self::assertGreaterThanOrEqual(1, $retryAfter);
+        self::assertLessThanOrEqual(61, $retryAfter);
     }
 
     public function testFailedLoginsBelowTheLimitHaveNoRetryAfter(): void
